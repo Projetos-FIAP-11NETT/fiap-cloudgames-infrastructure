@@ -62,7 +62,7 @@ services:
     environment:
       # RabbitMQ
       MassTransitSettings__RetryCount: 15
-      MassTransitSettings__Intervanl: 5000
+      MassTransitSettings__Interval: 5000
 
       RabbitmqSettings__Address: rabbitmq
       RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
