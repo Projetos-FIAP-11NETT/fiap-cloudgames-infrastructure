@@ -1,0 +1,98 @@
+services:
+
+  db:
+    image: postgres:16
+    container_name: postgres_db
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - ${POSTGRES_PORT1}:${POSTGRES_PORT2}
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+    networks:
+      - minha-rede-local-docker
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: postgres_pgAdmin
+    ports:
+      - ${PGADMIN_PORT1}:${PGADMIN_PORT2}  
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      #- postgresql-server-config:/var/lib/postgresql/data
+      - ./servers.json:/pgadmin4/servers.json
+    networks:
+      - minha-rede-local-docker
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - ${RABBITMQ_AMQP_PORT}:${RABBITMQ_AMQP_PORT}
+      - ${RABBITMQ_MANAGEMENT_UI_PORT}:${RABBITMQ_MANAGEMENT_UI_PORT}
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - minha-rede-local-docker
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - ${MAILHOG_SMTP_PORT}:${MAILHOG_SMTP_PORT}   
+      - ${MAILHOG_INTERFACE_WEB_PORT}:${MAILHOG_INTERFACE_WEB_PORT}   # Interface web
+    networks:
+      - minha-rede-local-docker
+
+  notification-api:
+    image: projetofiap/notification-api:1
+    container_name: notification-api
+    depends_on:
+      - rabbitmq
+      - mailhog
+    restart: unless-stopped
+    environment:
+      # RabbitMQ
+      MassTransitSettings__RetryCount: 15
+      MassTransitSettings__Intervanl: 5000
+
+      RabbitmqSettings__Address: rabbitmq
+      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
+      RabbitmqSettings__VirtualHost: /
+      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+
+      # Email (MailHog)
+      EmailSettings__SmtpHost: mailhog
+      EmailSettings__SmtpPort: ${MAILHOG_SMTP_PORT}
+      EmailSettings__UseMailHog: true
+    ports:
+      - ${NOTIFICATION_API_PORT}:${NOTIFICATION_API_PORT}
+    networks:
+      - minha-rede-local-docker
+
+networks:
+  minha-rede-local-docker:
+    external: true
+
+volumes:
+  postgresql-data:
+  postgresql-server-config:
+  rabbitmq_data:
+
+
+
+# commands
+  # network-ls: docker network ls
+  # network   : docker network create minha-rede-local-docker
+  # build     : docker-compose -p minha-infra build
+  # start     : docker-compose -p minha-infra -d
+  # recreate  : docker-compose -p minha-infra up -d --force-recreate
