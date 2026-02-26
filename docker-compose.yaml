@@ -1,6 +1,6 @@
 services:
 
-  db:
+  postgresdb:
     image: postgres:16
     container_name: postgres_db
     shm_size: 128mb
@@ -53,17 +53,14 @@ services:
       - minha-rede-local-docker
 
   notification-api:
-    image: projetofiap/notification-api:1
+    image: projetofiap/notification-api:3
     container_name: notification-api
     depends_on:
       - rabbitmq
       - mailhog
-    restart: unless-stopped
+    restart: always
     environment:
       # RabbitMQ
-      MassTransitSettings__RetryCount: 15
-      MassTransitSettings__Interval: 5000
-
       RabbitmqSettings__Address: rabbitmq
       RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
       RabbitmqSettings__VirtualHost: /
@@ -76,6 +73,51 @@ services:
       EmailSettings__UseMailHog: true
     ports:
       - ${NOTIFICATION_API_PORT}:${NOTIFICATION_API_PORT}
+    networks:
+      - minha-rede-local-docker
+
+  payments-api:
+    image: projetofiap/payments-api:1
+    container_name: payments-api
+    depends_on:
+      - rabbitmq
+      - postgresdb
+    restart: always
+    environment:
+      # RabbitMQ
+      RabbitmqSettings__Address: rabbitmq
+      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
+      RabbitmqSettings__VirtualHost: /
+      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+
+      # Db
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_PORT1};Database=${PAYMENTS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+    ports:
+      - ${PAYMENTS_API_PORT}:${PAYMENTS_API_PORT}
+    networks:
+      - minha-rede-local-docker
+  
+  users-api:
+    image: projetofiap/users-api:1
+    container_name: users-api
+    depends_on:
+      - rabbitmq
+      - postgresdb
+    restart: always
+    environment:
+      # RabbitMQ
+      RabbitmqSettings__Address: rabbitmq
+      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
+      RabbitmqSettings__VirtualHost: /
+      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+
+      # Db
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_PORT1};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+
+    ports:
+      - ${USERS_API_PORT}:${USERS_API_PORT}
     networks:
       - minha-rede-local-docker
 
@@ -94,5 +136,5 @@ volumes:
   # network-ls: docker network ls
   # network   : docker network create minha-rede-local-docker
   # build     : docker-compose -p minha-infra build
-  # start     : docker-compose -p minha-infra -d
+  # start     : docker-compose -p minha-infra up -d
   # recreate  : docker-compose -p minha-infra up -d --force-recreate
