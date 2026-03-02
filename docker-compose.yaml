@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - ${POSTGRES_PORT1}:${POSTGRES_PORT2}
+      - ${POSTGRES_HOST_PORT}:${POSTGRES_CONTAINER_PORT}
     volumes:
       - postgresql-data:/var/lib/postgresql/data
     networks:
@@ -23,7 +23,6 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     volumes:
-      #- postgresql-server-config:/var/lib/postgresql/data
       - ./servers.json:/pgadmin4/servers.json
     networks:
       - minha-rede-local-docker
@@ -53,12 +52,11 @@ services:
       - minha-rede-local-docker
 
   notification-api:
-    image: projetofiap/notification-api:3
+    image: projetofiap/notification-api:5
     container_name: notification-api
     depends_on:
       - rabbitmq
       - mailhog
-    restart: always
     environment:
       # RabbitMQ
       RabbitmqSettings__Address: rabbitmq
@@ -82,7 +80,6 @@ services:
     depends_on:
       - rabbitmq
       - postgresdb
-    restart: always
     environment:
       # RabbitMQ
       RabbitmqSettings__Address: rabbitmq
@@ -92,7 +89,10 @@ services:
       RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
 
       # Db
-      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_PORT1};Database=${PAYMENTS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${PAYMENTS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+
+      #Payment
+      Payment__ApprovalRate: ${PAYMENT_APPROVAL_RATE}
     ports:
       - ${PAYMENTS_API_PORT}:${PAYMENTS_API_PORT}
     networks:
@@ -104,7 +104,6 @@ services:
     depends_on:
       - rabbitmq
       - postgresdb
-    restart: always
     environment:
       # RabbitMQ
       RabbitmqSettings__Address: rabbitmq
@@ -114,8 +113,7 @@ services:
       RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
 
       # Db
-      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_PORT1};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
-
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
     ports:
       - ${USERS_API_PORT}:${USERS_API_PORT}
     networks:
@@ -129,8 +127,6 @@ volumes:
   postgresql-data:
   postgresql-server-config:
   rabbitmq_data:
-
-
 
 # commands
   # network-ls: docker network ls
