@@ -114,6 +114,10 @@ services:
 
       # Db
       ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+
+      # Firebase
+      Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
+      Firebase__ApiKey: ${FIREBASE_API_KEY}
     ports:
       - ${USERS_API_PORT}:${USERS_API_PORT}
     networks:
