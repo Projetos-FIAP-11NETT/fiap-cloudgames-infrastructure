@@ -9,9 +9,9 @@ metadata:
 spec:
   containers: 
     - name: notification-api
-      image: projetofiap/notification-api:3
+      image: projetofiap/notification-api:5
       ports:
-        - containerPort: 80
+        - containerPort: 8080
       resources:
         requests: #minimum resources guaranteed to the container
           memory: "128Mi"
@@ -22,26 +22,44 @@ spec:
       env:
         # RabbitMQ
         - name: RabbitmqSettings__Address
-          value: "rabbitmq"
+          valueFrom:
+            configMapKeyRef:
+              name: shared-config
+              key: RABBITMQ_ADDRESS
         - name: RabbitmqSettings__Port
-          value: "5672"
+          valueFrom:
+            configMapKeyRef:
+              name: shared-config
+              key: RABBITMQ_PORT
         - name: RabbitmqSettings__VirtualHost
-          value: "/"
+          valueFrom:
+            configMapKeyRef:
+              name: shared-config
+              key: RABBITMQ_VIRTUAL_HOST
         - name: RabbitmqSettings__Username
           valueFrom:
             secretKeyRef:
-              name: rabbitmq-secret
-              key: username
+              name: shared-secret
+              key: RABBITMQ_USERNAME
         - name: RabbitmqSettings__Password
           valueFrom:
             secretKeyRef:
-              name: rabbitmq-secret
-              key: password
+              name: shared-secret
+              key: RABBITMQ_PASSWORD
 
         # Email (MailHog)
         - name: EmailSettings__SmtpHost
-          value: "mailhog"
+          valueFrom:
+            configMapKeyRef:
+              name: notification-api-config
+              key: MAILHOG_SMTP_HOST
         - name: EmailSettings__SmtpPort
-          value: "1025"
+          valueFrom:
+            configMapKeyRef:
+              name: notification-api-config
+              key: MAILHOG_SMTP_PORT
         - name: EmailSettings__UseMailHog
-          value: "true"
+          valueFrom:
+            configMapKeyRef:
+              name: notification-api-config
+              key: MAILHOG_USEMAILHOG

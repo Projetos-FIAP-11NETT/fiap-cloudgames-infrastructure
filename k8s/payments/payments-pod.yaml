@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: payments-api
+  labels:
+    app: payments-api
+  annotations:
+    description: "Pod para a API de Pagamentos, responsável por processar transações e gerenciar pagamentos."
+spec:
+  containers: 
+    - name: payments-api
+      image: projetofiap/payments-api:1
+      ports:
+        - containerPort: 8081
+      resources:
+        requests: #minimum resources guaranteed to the container
+          memory: "128Mi"
+          cpu: "0.25"
+        limits: #maximum resources that the container can use
+          memory: "256Mi"
+          cpu: "0.5"
+      env:
+        # RabbitMQ
+        - name: RabbitmqSettings__Address
+          valueFrom:
+            configMapKeyRef:
+              name: shared-config
+              key: RABBITMQ_ADDRESS
+        - name: RabbitmqSettings__Port
+          valueFrom:
+            configMapKeyRef:
+              name: shared-config
+              key: RABBITMQ_PORT
+        - name: RabbitmqSettings__VirtualHost
+          valueFrom:
+            configMapKeyRef:
+              name: shared-config
+              key: RABBITMQ_VIRTUAL_HOST
+        - name: RabbitmqSettings__Username
+          valueFrom:
+            secretKeyRef:
+              name: shared-secret
+              key: RABBITMQ_USERNAME
+        - name: RabbitmqSettings__Password
+          valueFrom:
+            secretKeyRef:
+              name: shared-secret
+              key: RABBITMQ_PASSWORD
+        # Db
+        - name: DbSettings__ConnectionString
+          valueFrom:
+            secretKeyRef:
+              name: payments-secret
+              key: DB_USER_CONNECTION_STRING
+        # Payment
+        - name: Payment__ApprovalRate
+          valueFrom:
+            configMapKeyRef:
+              name: payments-config
+              key: PAYMENT_APPROVAL_RATE

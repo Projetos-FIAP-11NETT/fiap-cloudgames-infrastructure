@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailhog
+  labels:
+    app: mailhog
+  annotations:
+    description: "Service para o MailHog, expondo a porta 1025 para envio de emails e a porta 8025 para acesso à interface web."
+spec:
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 1025
+      targetPort: 1025
+      nodePort: 30025
+      name: smtp
+    - protocol: TCP
+      port: 8025
+      targetPort: 8025
+      nodePort: 30026
+      name: web-ui
+  selector:
+    app: mailhog
+    
