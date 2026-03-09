@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresdb-payments
+  labels:
+    app: postgresdb-payments
+spec:
+  selector:
+    app: postgresdb-payments  # Deve corresponder ao label do pod
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

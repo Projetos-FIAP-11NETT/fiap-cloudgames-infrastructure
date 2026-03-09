@@ -52,7 +52,7 @@ services:
       - minha-rede-local-docker
 
   notification-api:
-    image: projetofiap/notification-api:5
+    image: projetofiap/notification-api:6
     container_name: notification-api
     depends_on:
       - rabbitmq
@@ -69,8 +69,18 @@ services:
       EmailSettings__SmtpHost: mailhog
       EmailSettings__SmtpPort: ${MAILHOG_SMTP_PORT}
       EmailSettings__UseMailHog: true
+
+      #New Relic
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: debug
+      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
+
     ports:
-      - ${NOTIFICATION_API_PORT}:${NOTIFICATION_API_PORT}
+      - ${NOTIFICATION_API_HOST_PORT}:${CONTAINER_PORT}
     networks:
       - minha-rede-local-docker
 
@@ -94,13 +104,15 @@ services:
       #Payment
       Payment__ApprovalRate: ${PAYMENT_APPROVAL_RATE}
     ports:
-      - ${PAYMENTS_API_PORT}:${PAYMENTS_API_PORT}
+      - ${PAYMENTS_API_HOST_PORT}:${CONTAINER_PORT}
     networks:
       - minha-rede-local-docker
   
   users-api:
-    image: projetofiap/users-api:1
+    image: projetofiap/users-api:3
     container_name: users-api
+    volumes:
+      - ./secrets/firebase-service-account.json:/app/firebase-service-account.json
     depends_on:
       - rabbitmq
       - postgresdb
@@ -111,22 +123,27 @@ services:
       RabbitmqSettings__VirtualHost: /
       RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
       RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+      Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
+
+      # New Relic
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: debug
+      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
 
       # Db
       ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
-
-      # Firebase
-      Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
-      Firebase__ApiKey: ${FIREBASE_API_KEY}
     ports:
-      - ${USERS_API_PORT}:${USERS_API_PORT}
+      - ${USERS_API_HOST_PORT}:${CONTAINER_PORT}
     networks:
       - minha-rede-local-docker
 
 networks:
   minha-rede-local-docker:
     external: true
-
 volumes:
   postgresql-data:
   postgresql-server-config:

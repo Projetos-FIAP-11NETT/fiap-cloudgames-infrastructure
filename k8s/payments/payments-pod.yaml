@@ -47,7 +47,7 @@ spec:
               name: shared-secret
               key: RABBITMQ_PASSWORD
         # Db
-        - name: DbSettings__ConnectionString
+        - name: ConnectionStrings__DefaultConnection
           valueFrom:
             secretKeyRef:
               name: payments-secret
