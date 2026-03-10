@@ -13,6 +13,11 @@ services:
       - postgresql-data:/var/lib/postgresql/data
     networks:
       - minha-rede-local-docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   pgadmin:
     image: dpage/pgadmin4
@@ -41,6 +46,11 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - minha-rede-local-docker
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mailhog:
     image: mailhog/mailhog
@@ -50,13 +60,21 @@ services:
       - ${MAILHOG_INTERFACE_WEB_PORT}:${MAILHOG_INTERFACE_WEB_PORT}   # Interface web
     networks:
       - minha-rede-local-docker
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:${MAILHOG_INTERFACE_WEB_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   notification-api:
     image: projetofiap/notification-api:6
     container_name: notification-api
     depends_on:
-      - rabbitmq
-      - mailhog
+      rabbitmq:
+        condition: service_healthy
+      mailhog:
+        condition: service_healthy
+
     environment:
       # RabbitMQ
       RabbitmqSettings__Address: rabbitmq
@@ -88,8 +106,10 @@ services:
     image: projetofiap/payments-api:1
     container_name: payments-api
     depends_on:
-      - rabbitmq
-      - postgresdb
+      rabbitmq:
+        condition: service_healthy
+      postgresdb:
+        condition: service_healthy
     environment:
       # RabbitMQ
       RabbitmqSettings__Address: rabbitmq
@@ -114,8 +134,10 @@ services:
     volumes:
       - ./secrets/firebase-service-account.json:/app/firebase-service-account.json
     depends_on:
-      - rabbitmq
-      - postgresdb
+      rabbitmq:
+        condition: service_healthy
+      postgresdb:
+        condition: service_healthy
     environment:
       # RabbitMQ
       RabbitmqSettings__Address: rabbitmq
@@ -138,6 +160,29 @@ services:
       ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
     ports:
       - ${USERS_API_HOST_PORT}:${CONTAINER_PORT}
+    networks:
+      - minha-rede-local-docker
+
+  catalog-api:
+    image: projetofiap/catalog-api:1
+    container_name: catalog-api
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgresdb:
+        condition: service_healthy
+    environment:
+      # RabbitMQ
+      RabbitmqSettings__Address: rabbitmq
+      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
+      RabbitmqSettings__VirtualHost: /
+      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+
+      # Db
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${CATALOG_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+    ports:
+      - ${CATALOG_API_HOST_PORT}:${CONTAINER_PORT}
     networks:
       - minha-rede-local-docker
 
