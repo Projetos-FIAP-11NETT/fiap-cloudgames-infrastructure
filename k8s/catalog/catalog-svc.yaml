@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-api
+  labels:
+    app: catalog-api
+  annotations:
+    description: "Service para a API de Catálogo, expondo a porta 80 para acesso interno no cluster."
+spec:
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+      nodePort: 30083
+  selector:
+    app: catalog-api
+
+# acessar localmente: http://localhost:30083/

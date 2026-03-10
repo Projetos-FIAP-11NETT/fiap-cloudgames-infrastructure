@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: notification-deployment
+  name: users-deployment
   labels:
-    app: notification-api
+    app: users-api
   annotations:
-    description: "Deployment para a API de Notificações, garantindo alta disponibilidade e escalabilidade para o serviço de envio de emails e processamento de mensagens do RabbitMQ."
+    description: "Deployment para a API de Usuários, garantindo alta disponibilidade e escalabilidade para o serviço de gerenciamento de usuários."
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: notification-api
+      app: users-api
   template:
     metadata:
       labels:
-        app: notification-api
+        app: users-api
     spec:
       containers:
-        - name: notification
-          image: projetofiap/notification-api:5
+        - name: users
+          image: projetofiap/users-api:3
           ports:
             - containerPort: 8080
           resources:
@@ -55,20 +55,9 @@ spec:
               secretKeyRef:
                 name: shared-secret
                 key: RABBITMQ_PASSWORD
-          # Email (MailHog)
-          - name: EmailSettings__SmtpHost
+          # Db
+          - name: ConnectionStrings__DefaultConnection
             valueFrom:
-              configMapKeyRef:
-                name: notification-api-config
-                key: MAILHOG_SMTP_HOST
-          - name: EmailSettings__SmtpPort
-            valueFrom:
-              configMapKeyRef:
-                name: notification-api-config
-                key: MAILHOG_SMTP_PORT
-          - name: EmailSettings__UseMailHog
-            valueFrom:
-              configMapKeyRef:
-                name: notification-api-config
-                key: MAILHOG_USEMAILHOG
-          
+              secretKeyRef:
+                name: users-secret
+                key: DB_USER_CONNECTION_STRING

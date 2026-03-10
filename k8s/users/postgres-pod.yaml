@@ -1,20 +1,20 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: postgresdb-payments
+  name: postgresdb-users
   labels:
-    app: postgresdb-payments
+    app: postgresdb-users
   annotations:
-    description: "Pod para o banco de dados PostgreSQL, utilizado pela API de Pagamentos para armazenar informações de transações e pagamentos."
+    description: "Pod para o banco de dados PostgreSQL, utilizado pela API de Usuários para armazenar informações de usuários."
 spec:
   containers:
-    - name: postgresdb-payments
+    - name: postgresdb-users
       image: postgres:16
       ports:
         - containerPort: 5432
       env:
         - name: POSTGRES_DB
-          value: "payments-db"
+          value: "users-db"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -38,4 +38,4 @@ spec:
   volumes:
   - name: postgres-storage
     persistentVolumeClaim:
-      claimName: postgres-pvc-payments
+      claimName: postgres-pvc-users
