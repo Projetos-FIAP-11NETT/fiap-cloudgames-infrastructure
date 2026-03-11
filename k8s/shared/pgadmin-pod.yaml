@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pgadmin
+  labels:
+    app: pgadmin
+spec:
+  containers:
+    - name: pgadmin
+      image: dpage/pgadmin4
+      ports:
+        - containerPort: 80
+        - containerPort: 5050 
+      env:
+        - name: PGADMIN_DEFAULT_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: shared-secret
+              key: PGADMIN_DEFAULT_EMAIL
+        - name: PGADMIN_DEFAULT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: shared-secret
+              key: PGADMIN_DEFAULT_PASSWORD
+      volumeMounts:
+        - name: pgadmin-storage
+          # montar o PVC em um diretório interno válido (por exemplo, onde o pgAdmin guarda seus dados)
+          mountPath: /var/lib/pgadmin
+        - name: servers-json
+          mountPath: /pgadmin4/servers.json
+          subPath: servers.json
+  volumes:
+  - name: pgadmin-storage
+    persistentVolumeClaim:
+      claimName: pgadmin-pvc
+  - name: servers-json
+    configMap:
+      name: pgadmin-servers
+      items:
+        - key: servers.json
+          path: servers.json

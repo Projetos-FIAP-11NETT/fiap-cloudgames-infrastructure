@@ -13,5 +13,7 @@ spec:
       port: 80
       targetPort: 8080
       nodePort: 30081
+  selector:
+    app: payments-api
 
 # acessar localmente: http://localhost:30081/scalar

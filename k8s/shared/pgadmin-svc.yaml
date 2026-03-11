@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgadmin
+  labels:
+    app: pgadmin
+  annotations:
+    description: "Service para o PgAdmin, permitindo que outros pods no cluster se comuniquem com o PgAdmin usando o nome do serviço como hostname."
+spec:
+  selector:
+    app: pgadmin
+  ports:
+    - protocol: TCP
+      port: 5050        # service port (unused by NodePort clients)
+      targetPort: 80     # container is actually listening on port 80
+      nodePort: 30050
+  type: NodePort
