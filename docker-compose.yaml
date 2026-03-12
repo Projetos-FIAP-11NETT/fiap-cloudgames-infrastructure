@@ -103,7 +103,7 @@ services:
       - minha-rede-local-docker
 
   payments-api:
-    image: projetofiap/payments-api:1
+    image: projetofiap/payments-api:2
     container_name: payments-api
     depends_on:
       rabbitmq:
