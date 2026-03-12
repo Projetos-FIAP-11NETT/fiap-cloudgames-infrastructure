@@ -7,8 +7,8 @@ metadata:
   labels:
     app: pgadmin
   
-    annotations:
-    description: "Service para o PgAdmin, permitindo que outros pods no cluster se comuniquem com o PgAdmin usando o nome do serviço como hostname."
+  annotations:
+    description: "Service para o PgAdmin, permitindo que outros pods no cluster se comuniquem com o PgAdmin usando o nome do serviï¿½o como hostname."
 
 spec:
   type: NodePort

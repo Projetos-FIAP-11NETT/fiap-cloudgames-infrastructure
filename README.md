@@ -70,7 +70,7 @@ O diretório `k8s/` contém manifestos (Pod, Deployment, Service, Secrets etc.) 
    ```
 3. Aplique os recursos:
    ```bash
-   kubectl apply -R -f
+   kubectl apply -R -f .
    ```
 4. Verifique os objetos:
    ```bash
