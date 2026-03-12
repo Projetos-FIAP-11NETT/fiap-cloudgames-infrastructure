@@ -8,12 +8,12 @@ metadata:
     description: "Service para a API de Notificações, expondo a porta 80 para acesso interno no cluster."
 spec:
   type: NodePort
+  selector:
+    app: notification-api
   ports:
     - protocol: TCP
       port: 80
       targetPort: 8080
-      nodePort: 30080
-  selector:
-    app: notification-api
+      nodePort: 30080 
 
-# acessar localmente: http://localhost:30080/scalar
+# acessar localmente: http://localhost:30080/scalar/

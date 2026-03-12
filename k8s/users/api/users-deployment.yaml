@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-deployment
+  labels:
+    app: users-api
+  annotations:
+    description: "Deployment para a API de Usuários, garantindo alta disponibilidade e escalabilidade para o serviço de gerenciamento de usuários."
+
+spec:
+  replicas: 1
+  
+  selector:
+    matchLabels:
+      app: users-api
+  
+  template:
+    metadata:
+      labels:
+        app: users-api
+    
+    spec:
+      containers:
+        - name: users
+          image: projetofiap/users-api:3
+          
+          ports:
+            - containerPort: 8080
+          
+          resources:
+            requests: # recursos mínimos
+              memory: "128Mi"
+              cpu: "250m"
+            
+            limits: # recursos máximos
+              memory: "256Mi"
+              cpu: "500m"
+
+          env:
+            # RabbitMQ
+            - name: RabbitmqSettings__Address
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: RABBITMQ_ADDRESS
+            
+            - name: RabbitmqSettings__Port
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: RABBITMQ_PORT
+            
+            - name: RabbitmqSettings__VirtualHost
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: RABBITMQ_VIRTUAL_HOST
+            
+            - name: RabbitmqSettings__Username
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: RABBITMQ_USERNAME
+            
+            - name: RabbitmqSettings__Password
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: RABBITMQ_PASSWORD
+            
+            # Db
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: users-secret
+                  key: DB_USER_CONNECTION_STRING

@@ -1,15 +1,21 @@
 apiVersion: v1
 kind: Service
+
 metadata:
   name: postgresdb-payments
+  
   labels:
     app: postgresdb-payments
+  
   annotations:
     description: "Service para o banco de dados PostgreSQL da API de Pagamentos, permitindo que outros pods no cluster se comuniquem com o banco de dados usando o nome do serviço como hostname."
+
 spec:
+  clusterIP: None
+
   selector:
     app: postgresdb-payments
+
   ports:
     - port: 5432
       targetPort: 5432
-  type: ClusterIP
