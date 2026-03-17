@@ -67,7 +67,7 @@ services:
       retries: 5
 
   notification-api:
-    image: projetofiap/notification-api:7
+    image: projetofiap/notification-api:latest
     container_name: notification-api
     depends_on:
       rabbitmq:
@@ -103,7 +103,7 @@ services:
       - minha-rede-local-docker
 
   payments-api:
-    image: projetofiap/payments-api:2
+    image: projetofiap/payments-api:latest
     container_name: payments-api
     depends_on:
       rabbitmq:
@@ -123,13 +123,22 @@ services:
 
       #Payment
       Payment__ApprovalRate: ${PAYMENT_APPROVAL_RATE}
+
+      # New Relic
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: debug
+      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
     ports:
       - ${PAYMENTS_API_HOST_PORT}:${CONTAINER_PORT}
     networks:
       - minha-rede-local-docker
   
   users-api:
-    image: projetofiap/users-api:4
+    image: projetofiap/users-api:latest
     container_name: users-api
     volumes:
       - ./secrets/firebase-service-account.json:/app/firebase-service-account.json
@@ -164,7 +173,7 @@ services:
       - minha-rede-local-docker
 
   catalog-api:
-    image: projetofiap/catalog-api:1
+    image: projetofiap/catalog-api:latest
     container_name: catalog-api
     depends_on:
       rabbitmq:
@@ -181,6 +190,15 @@ services:
 
       # Db
       ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${CATALOG_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+
+      # New Relic
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: debug
+      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
     ports:
       - ${CATALOG_API_HOST_PORT}:${CONTAINER_PORT}
     networks:

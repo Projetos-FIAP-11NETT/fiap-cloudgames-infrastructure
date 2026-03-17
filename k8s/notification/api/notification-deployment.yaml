@@ -40,7 +40,7 @@ spec:
       
       containers:
         - name: notification
-          image: projetofiap/notification-api:5
+          image: projetofiap/notification-api:latest
     
           ports:
             - containerPort: 8080
@@ -104,4 +104,41 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: notification-configmap
-                  key: MAILHOG_USEMAILHOG          
+                  key: MAILHOG_USEMAILHOG    
+
+            # New Relic
+            - name: NEW_RELIC_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: NEW_RELIC_LICENSE_KEY
+            - name: NEW_RELIC_APP_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: NEW_RELIC_APP_NAME 
+            - name: NEW_RELIC_LOG
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_LOG
+            - name: NEW_RELIC_LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_LOG_LEVEL
+            - name: NEW_RELIC_APPLICATION_LOGGING_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_APPLICATION_LOGGING_ENABLED
+            - name: NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED
+            - name: NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      
