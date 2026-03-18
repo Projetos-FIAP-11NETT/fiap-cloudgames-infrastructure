@@ -1,0 +1,220 @@
+services:
+
+  postgresdb:
+    image: postgres:16
+    container_name: postgres_db
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - ${POSTGRES_HOST_PORT}:${POSTGRES_CONTAINER_PORT}
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+    networks:
+      - minha-rede-local-docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: postgres_pgAdmin
+    ports:
+      - ${PGADMIN_PORT1}:${PGADMIN_PORT2}  
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - ./servers.json:/pgadmin4/servers.json
+    networks:
+      - minha-rede-local-docker
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - ${RABBITMQ_AMQP_PORT}:${RABBITMQ_AMQP_PORT}
+      - ${RABBITMQ_MANAGEMENT_UI_PORT}:${RABBITMQ_MANAGEMENT_UI_PORT}
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - minha-rede-local-docker
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - ${MAILHOG_SMTP_PORT}:${MAILHOG_SMTP_PORT}   
+      - ${MAILHOG_INTERFACE_WEB_PORT}:${MAILHOG_INTERFACE_WEB_PORT}   # Interface web
+    networks:
+      - minha-rede-local-docker
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:${MAILHOG_INTERFACE_WEB_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  notification-api:
+    image: projetofiap/notification-api:latest
+    container_name: notification-api
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mailhog:
+        condition: service_healthy
+
+    environment:
+      # RabbitMQ
+      RabbitmqSettings__Address: rabbitmq
+      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
+      RabbitmqSettings__VirtualHost: /
+      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+
+      # Email (MailHog)
+      EmailSettings__SmtpHost: mailhog
+      EmailSettings__SmtpPort: ${MAILHOG_SMTP_PORT}
+      EmailSettings__UseMailHog: true
+
+      #New Relic
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: debug
+      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
+
+    ports:
+      - ${NOTIFICATION_API_HOST_PORT}:${CONTAINER_PORT}
+    networks:
+      - minha-rede-local-docker
+
+  payments-api:
+    image: projetofiap/payments-api:latest
+    container_name: payments-api
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgresdb:
+        condition: service_healthy
+    environment:
+      # RabbitMQ
+      RabbitmqSettings__Address: rabbitmq
+      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
+      RabbitmqSettings__VirtualHost: /
+      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+
+      # Db
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${PAYMENTS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+
+      #Payment
+      Payment__ApprovalRate: ${PAYMENT_APPROVAL_RATE}
+
+      # New Relic
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: debug
+      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
+    ports:
+      - ${PAYMENTS_API_HOST_PORT}:${CONTAINER_PORT}
+    networks:
+      - minha-rede-local-docker
+  
+  users-api:
+    image: projetofiap/users-api:latest
+    container_name: users-api
+    volumes:
+      - ./secrets/firebase-service-account.json:/app/firebase-service-account.json
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgresdb:
+        condition: service_healthy
+    environment:
+      # RabbitMQ
+      RabbitmqSettings__Address: rabbitmq
+      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
+      RabbitmqSettings__VirtualHost: /
+      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+      Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
+
+      # New Relic
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: debug
+      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
+
+      # Db
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+    ports:
+      - ${USERS_API_HOST_PORT}:${CONTAINER_PORT}
+    networks:
+      - minha-rede-local-docker
+
+  catalog-api:
+    image: projetofiap/catalog-api:latest
+    container_name: catalog-api
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgresdb:
+        condition: service_healthy
+    environment:
+      # RabbitMQ
+      RabbitmqSettings__Address: rabbitmq
+      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
+      RabbitmqSettings__VirtualHost: /
+      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+
+      # Db
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${CATALOG_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+
+      # New Relic
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: debug
+      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
+    ports:
+      - ${CATALOG_API_HOST_PORT}:${CONTAINER_PORT}
+    networks:
+      - minha-rede-local-docker
+
+networks:
+  minha-rede-local-docker:
+    external: true
+volumes:
+  postgresql-data:
+  postgresql-server-config:
+  rabbitmq_data:
+
+# commands
+  # network-ls: docker network ls
+  # network   : docker network create minha-rede-local-docker
+  # build     : docker-compose -p minha-infra build
+  # start     : docker-compose -p minha-infra up -d
+  # recreate  : docker-compose -p minha-infra up -d --force-recreate

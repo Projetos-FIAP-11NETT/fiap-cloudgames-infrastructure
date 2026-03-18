@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: notification-deployment
+  
+  labels:
+    app: notification-api
+  
+  annotations:
+    description: "Deployment para a API de Notificações, garantindo alta disponibilidade e escalabilidade para o serviço de envio de emails e processamento de mensagens do RabbitMQ."
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: notification-api
+
+  template:
+    metadata:
+      labels:
+        app: notification-api
+
+    spec:
+      
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for RabbitMQ..."
+              until nc -z rabbitmq 5672; do
+                echo "RabbitMQ not ready..."
+                sleep 5
+              done
+              echo "RabbitMQ is ready!"
+      
+      containers:
+        - name: notification
+          image: projetofiap/notification-api:latest
+    
+          ports:
+            - containerPort: 8080
+    
+          resources:
+            requests: #minimum resources guaranteed to the container
+              memory: "128Mi"
+              cpu: "250m"
+       
+            limits: #maximum resources that the container can use
+              memory: "256Mi"
+              cpu: "500m"
+  
+          env:
+            
+            # RabbitMQ
+            - name: RabbitmqSettings__Address
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: RABBITMQ_ADDRESS
+            
+            - name: RabbitmqSettings__Port
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: RABBITMQ_PORT
+            
+            - name: RabbitmqSettings__VirtualHost
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: RABBITMQ_VIRTUAL_HOST
+            
+            - name: RabbitmqSettings__Username
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: RABBITMQ_USERNAME
+            
+            - name: RabbitmqSettings__Password
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: RABBITMQ_PASSWORD
+            
+            # Email (MailHog)
+            - name: EmailSettings__SmtpHost
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-configmap
+                  key: MAILHOG_SMTP_HOST
+            
+            - name: EmailSettings__SmtpPort
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-configmap
+                  key: MAILHOG_SMTP_PORT
+            
+            - name: EmailSettings__UseMailHog
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-configmap
+                  key: MAILHOG_USEMAILHOG    
+
+            # New Relic
+            - name: NEW_RELIC_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: NEW_RELIC_LICENSE_KEY
+            - name: NEW_RELIC_APP_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: NEW_RELIC_APP_NAME 
+            - name: NEW_RELIC_LOG
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_LOG
+            - name: NEW_RELIC_LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_LOG_LEVEL
+            - name: NEW_RELIC_APPLICATION_LOGGING_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_APPLICATION_LOGGING_ENABLED
+            - name: NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED
+            - name: NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      
