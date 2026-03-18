@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: payments-configmap
+
+  labels:
+    app: payments-api
+
+  annotations:
+    description: "ConfigMap para a API de Pagamentos, contendo configurações de ambiente para PostgreSQL e outros serviços."
+
+data:
+  # Payment
+  PAYMENT_APPROVAL_RATE: "0.9" # 90% de aprovação para simular falhas
