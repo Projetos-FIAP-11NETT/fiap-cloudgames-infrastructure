@@ -1,5 +1,53 @@
 services:
 
+  localstack:
+    container_name: localstack
+    image: localstack/localstack
+    ports:
+      - "${LOCALSTACK_HOST}:${LOCALSTACK_PORT1}:${LOCALSTACK_PORT1}"
+      - "${LOCALSTACK_HOST}:${LOCALSTACK_PORT2}:${LOCALSTACK_PORT2}"
+    environment:
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_TOKEN}
+      DEBUG: ${DEBUG:-0}
+    volumes:
+      - "./localstack/volume:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  mongodb:
+      image: mongo:7
+      container_name: mongodb
+      environment:
+        MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+        MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      ports:
+        - ${MONGO_HOST_PORT}:27017
+      volumes:
+        - mongodb-data:/data/db
+      networks:
+        - minha-rede-local-docker
+      healthcheck:
+        test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo_express
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    ports:
+      - ${MONGO_EXPRESS_PORT}:8081
+    networks:
+      - minha-rede-local-docker
+
   postgresdb:
     image: postgres:16
     container_name: postgres_db
@@ -211,10 +259,11 @@ volumes:
   postgresql-data:
   postgresql-server-config:
   rabbitmq_data:
+  mongodb-data:
 
 # commands
   # network-ls: docker network ls
   # network   : docker network create minha-rede-local-docker
-  # build     : docker-compose -p minha-infra build
-  # start     : docker-compose -p minha-infra up -d
-  # recreate  : docker-compose -p minha-infra up -d --force-recreate
+  # build     : docker-compose -p fiap-challenge-fase-3 build
+  # start     : docker-compose -p fiap-challenge-fase-3 up -d
+  # recreate  : docker-compose -p fiap-challenge-fase-3 up -d --force-recreate
