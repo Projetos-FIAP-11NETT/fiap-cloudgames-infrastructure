@@ -268,7 +268,8 @@ create_resource_routes() {
               --type HTTP_PROXY \
               --integration-http-method PUT \
               --uri "${service_uri}/api/v1/User/MakeAdmin" \
-              --passthrough-behavior WHEN_NO_MATCH >/dev/null || true
+              --passthrough-behavior WHEN_NO_MATCH \
+              --request-parameters "integration.request.header.x-user-id=context.authorizer.userId,integration.request.header.x-roles=context.authorizer.roles" >/dev/null || true
           fi
           fi
         fi
