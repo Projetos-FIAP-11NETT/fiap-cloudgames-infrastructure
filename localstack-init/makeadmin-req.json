@@ -1,0 +1,1 @@
+{"integration.request.header.x-user-id":"context.authorizer.userId","integration.request.header.x-roles":"context.authorizer.roles"}

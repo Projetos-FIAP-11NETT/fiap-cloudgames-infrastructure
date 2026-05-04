@@ -185,6 +185,7 @@ services:
       RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
       RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
       Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
+      ALLOW_LOCAL_AUTH_SYNC_BYPASS: true
 
       # New Relic
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}

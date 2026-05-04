@@ -1,0 +1,115 @@
+service: fiap-localstack-init
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: dotnet8
+  region: us-east-1
+  stage: dev
+  lambdaHashingVersion: 20201221
+
+plugins:
+  - serverless-localstack
+
+custom:
+  localstack:
+    stages:
+      - dev
+    host: http://localhost
+    edgePort: 4566
+
+functions:
+  authorizer:
+    handler: FiapCloudGames.Lambda.Authorizer::FiapCloudGames.Lambda.Authorizer.AuthorizerFunction::FunctionHandler
+    package:
+      artifact: ./lambda-authorizer/function.zip
+    memorySize: 128
+    timeout: 30
+
+resources:
+  Resources:
+    ApiGatewayRestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Name: fiap-users-api-local
+
+    ResourceUsers:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+        ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+        PathPart: users
+
+    ResourceApi:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+        ParentId: !Ref ResourceUsers
+        PathPart: api
+
+    ResourceV1:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+        ParentId: !Ref ResourceApi
+        PathPart: v1
+
+    ResourceUser:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+        ParentId: !Ref ResourceV1
+        PathPart: User
+
+    ResourceMakeAdmin:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+        ParentId: !Ref ResourceUser
+        PathPart: MakeAdmin
+
+    ApiAuthorizer:
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: LocalLambdaTokenAuthorizer
+        RestApiId: !Ref ApiGatewayRestApi
+        Type: TOKEN
+        IdentitySource: method.request.header.Authorization
+        AuthorizerUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerLambdaFunction.Arn}/invocations
+
+    MakeAdminMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+        ResourceId: !Ref ResourceMakeAdmin
+        HttpMethod: PUT
+        AuthorizationType: CUSTOM
+        AuthorizerId: !Ref ApiAuthorizer
+        Integration:
+          Type: HTTP_PROXY
+          IntegrationHttpMethod: PUT
+          Uri: http://host.docker.internal:${env:USERS_API_HOST_PORT, "8082"}/api/v1/User/MakeAdmin
+          RequestParameters:
+            integration.request.header.x-user-id: "context.authorizer.userId"
+            integration.request.header.x-roles: "context.authorizer.roles"
+
+    MakeAdminDeployment:
+      Type: AWS::ApiGateway::Deployment
+      DependsOn:
+        - MakeAdminMethod
+      Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+
+    MakeAdminStage:
+      Type: AWS::ApiGateway::Stage
+      Properties:
+        StageName: dev
+        RestApiId: !Ref ApiGatewayRestApi
+        DeploymentId: !Ref MakeAdminDeployment
+
+    PermissionForApiToInvokeAuthorizer:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt AuthorizerLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: apigateway.amazonaws.com
