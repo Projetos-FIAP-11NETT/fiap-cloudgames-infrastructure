@@ -66,6 +66,36 @@ services:
       timeout: 5s
       retries: 5
 
+  localstack:
+    image: localstack/localstack-pro:${LOCALSTACK_IMAGE_TAG}
+    container_name: localstack
+    ports:
+      - ${LOCALSTACK_EDGE_PORT}:${LOCALSTACK_EDGE_PORT}
+    environment:
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
+      SERVICES: ${LOCALSTACK_SERVICES}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+      LOCALSTACK_HOST: localhost
+      HOSTNAME_FROM_LAMBDA: localstack
+      LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT: 120000
+      LAMBDA_INVOKE_TIMEOUT: 120
+      LAMBDA_DOCKER_NETWORK: minha-rede-local-docker
+      DEBUG: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - localstack-data:/var/lib/localstack
+      - ./localstack-init:/etc/localstack/init/ready.d
+    networks:
+      - minha-rede-local-docker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   notification-api:
     image: projetofiap/notification-api:latest
     container_name: notification-api
@@ -211,6 +241,7 @@ volumes:
   postgresql-data:
   postgresql-server-config:
   rabbitmq_data:
+  localstack-data:
 
 # commands
   # network-ls: docker network ls
