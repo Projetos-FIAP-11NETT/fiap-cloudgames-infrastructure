@@ -40,7 +40,120 @@ O arquivo `.env` no diretório raiz define as portas e credenciais usadas pelo `
    - Catalog API: `8083`
    - RabbitMQ management: `15672`
    - MailHog web: `8025`
+   - LocalStack edge: `4566`
    - PgAdmin: `5050`
+
+   ### LocalStack
+
+   O `docker-compose` também sobe o LocalStack para simular serviços AWS em desenvolvimento local.
+
+   Para usar a interface web e os recursos Pro, preencha `LOCALSTACK_AUTH_TOKEN` no arquivo `.env` com o token pessoal gerado na sua conta.
+
+   Credenciais padrão:
+
+   - `LOCALSTACK_AUTH_TOKEN=<seu-token>`
+   - `LOCALSTACK_IMAGE_TAG=latest` (ou `2026.3.0`/superior)
+   - `AWS_ACCESS_KEY_ID=test`
+   - `AWS_SECRET_ACCESS_KEY=test`
+   - `AWS_SESSION_TOKEN=test`
+   - `AWS_DEFAULT_REGION=us-east-1`
+
+   Endpoint local:
+
+   - `http://localhost.localstack.cloud:4566`
+
+   Interface web:
+
+   - Abra `https://app.localstack.cloud`
+   - Permita o acesso à rede local quando o navegador solicitar
+   - A interface se conecta ao seu LocalStack em `http://localhost.localstack.cloud:4566`
+
+   Observação:
+
+   - O endereço `http://localhost:4566` é o endpoint da API, não uma página HTML
+   - Se você quiser uma experiência mais integrada ao desktop, o LocalStack Desktop também é uma opção
+
+   Serviços habilitados por padrão:
+
+   - `s3`
+   - `sqs`
+   - `sns`
+   - `iam`
+   - `sts`
+
+   Exemplo de uso com AWS CLI:
+
+   ```bash
+   aws --endpoint-url=http://localhost:4566 s3 ls
+   ```
+
+API Gateway com Lambda Authorizer (LocalStack)
+
+Um script de bootstrap (`localstack-init/create-api-gateway.sh`) cria um `REST API` (API Gateway v1 / `apigateway`) com autorização centralizada via Lambda Authorizer. O fluxo é:
+
+1. **REST API Gateway v1** recebe requisições em `http://localhost.localstack.cloud:4566/restapis/<apiId>/dev/_user_request_`
+2. **Lambda Authorizer** valida o JWT e verifica permissões baseadas em roles
+3. Requisições autorizadas são roteadas aos serviços locais; não autorizadas retornam 403
+
+#### Regras de Autorização
+
+| Rota | Método | Permissão |
+|------|--------|-----------|
+| `/catalog` | GET | Público |
+| `/catalog` | POST/PUT/DELETE | Admin |
+| `/users` | Qualquer | Admin |
+| `/payments` | GET/POST | Autenticado (user, admin) |
+| `/payments` | PUT/DELETE | Admin |
+| `/notification` | GET/POST | Autenticado (user, admin) |
+| `/notification` | DELETE | Admin |
+
+#### Lambda Authorizer
+
+Implementado em **Clean Architecture + CQRS** (`.NET 10`):
+
+- **Domain**: regras de autorização, resultado de validação
+- **Application**: CQRS Query + Handler para processar autorização
+- **Infrastructure**: JWT parsing, IAM policy builder
+- **Program.cs**: DI com MediatR
+
+Repositório: `localstack-init/lambda-authorizer/`
+
+Build local:
+```bash
+cd localstack-init/lambda-authorizer
+powershell -ExecutionPolicy Bypass -File build.ps1
+```
+
+Desenvolvimento:
+- Edite regras em `Infrastructure/AuthorizationRulesService.cs`
+- O token JWT é decodificado sem validação de assinatura (dev local)
+- Para produção, implemente validação via JWKS do Firebase
+
+#### Invoke do Gateway
+
+```bash
+# Token com role 'user'
+TOKEN="seu-jwt-aqui"
+
+# Descobrir API ID
+API_ID=$(docker compose exec localstack awslocal apigateway get-rest-apis --query "items[?name=='local-api-gateway-v1'].id | [0]" --output text)
+
+# GET /catalog (público)
+curl -H "Authorization: Bearer $TOKEN" http://localhost.localstack.cloud:4566/restapis/$API_ID/dev/_user_request_/catalog
+
+# POST /catalog (admin required)
+curl -X POST -H "Authorization: Bearer $TOKEN" http://localhost.localstack.cloud:4566/restapis/$API_ID/dev/_user_request_/catalog
+
+# GET /users (admin required)
+curl -H "Authorization: Bearer $TOKEN" http://localhost.localstack.cloud:4566/restapis/$API_ID/dev/_user_request_/users
+```
+
+Se o token não tiver a role necessária, o gateway retorna:
+```
+HTTP 403 Forbidden
+```
+
+
 
 5. Para parar:
    ```bash
