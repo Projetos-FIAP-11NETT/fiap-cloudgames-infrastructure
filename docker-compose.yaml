@@ -12,24 +12,62 @@ services:
     volumes:
       - "./localstack/volume:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - minha-rede-local-docker
+      
+  # terraform:
+  #   image: hashicorp/terraform:latest
+  #   container_name: terraform
+  #   working_dir: /infra
+  #   entrypoint: ["/bin/sh", "-c"]
+  #   command: "terraform init && terraform apply -auto-approve && tail -f /dev/null"
+  #   environment:
+  #     AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+  #     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+  #     AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+  #     TF_VAR_localstack_endpoint: http://localstack:${LOCALSTACK_PORT1}
+  #   volumes:
+  #     - ./terraform:/infra
+  #   networks:
+  #     - minha-rede-local-docker
+  #   depends_on:
+  #     - localstack
 
+  # terraform:
+  #   image: hashicorp/terraform:latest
+  #   container_name: terraform
+  #   working_dir: /workspace
+  #   environment:
+  #     AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+  #     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+  #     AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+  #     TF_VAR_localstack_endpoint: http://localstack:${LOCALSTACK_PORT1} # LocalStack endpoint
+  #   volumes:
+  #     - ./terraform:/workspace
+  #   networks:
+  #     - minha-rede-local-docker
+  #   depends_on:
+  #     - localstack
+  #   entrypoint: ["terraform"]
+  #   command: ["init"]
+ 
   mongodb:
-      image: mongo:7
-      container_name: mongodb
-      environment:
-        MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
-        MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-      ports:
-        - ${MONGO_HOST_PORT}:27017
-      volumes:
-        - mongodb-data:/data/db
-      networks:
-        - minha-rede-local-docker
-      healthcheck:
-        test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
+    image: mongo:7
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    ports:
+      - ${MONGO_HOST_HOST}:${MONGO_HOST_PORT}
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - minha-rede-local-docker
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mongo-express:
     image: mongo-express:latest
@@ -44,7 +82,36 @@ services:
       ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER}
       ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
     ports:
-      - ${MONGO_EXPRESS_PORT}:8081
+      - ${MONGO_EXPRESS_HOST}:${MONGO_EXPRESS_PORT}
+    networks:
+      - minha-rede-local-docker
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - ${REDIS_HOST}:${REDIS_PORT}
+    volumes:
+      - redis-data:/data
+    networks:
+      - minha-rede-local-docker
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - ${REDISINSIGHT_HOST}:${REDISINSIGHT_PORT}
+    volumes:
+      - redisinsight-data:/data
     networks:
       - minha-rede-local-docker
 
@@ -100,58 +167,43 @@ services:
       timeout: 5s
       retries: 5
 
-  mailhog:
-    image: mailhog/mailhog
-    container_name: mailhog
-    ports:
-      - ${MAILHOG_SMTP_PORT}:${MAILHOG_SMTP_PORT}   
-      - ${MAILHOG_INTERFACE_WEB_PORT}:${MAILHOG_INTERFACE_WEB_PORT}   # Interface web
-    networks:
-      - minha-rede-local-docker
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:${MAILHOG_INTERFACE_WEB_PORT}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # users-api:
+  #   image: projetofiap/users-api:latest
+  #   container_name: users-api
+  #   volumes:
+  #     - ./secrets/firebase-service-account.json:/app/firebase-service-account.json
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     postgresdb:
+  #       condition: service_healthy
+  #   environment:
+  #     # RabbitMQ
+  #     RabbitmqSettings__Address: rabbitmq
+  #     RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
+  #     RabbitmqSettings__VirtualHost: /
+  #     RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
+  #     RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+  #     Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
 
-  notification-api:
-    image: projetofiap/notification-api:latest
-    container_name: notification-api
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mailhog:
-        condition: service_healthy
+  #     # New Relic
+  #     NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+  #     NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+  #     NEW_RELIC_LOG: stdout
+  #     NEW_RELIC_LOG_LEVEL: debug
+  #     NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+  #     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+  #     NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
 
-    environment:
-      # RabbitMQ
-      RabbitmqSettings__Address: rabbitmq
-      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
-      RabbitmqSettings__VirtualHost: /
-      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
-      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
-
-      # Email (MailHog)
-      EmailSettings__SmtpHost: mailhog
-      EmailSettings__SmtpPort: ${MAILHOG_SMTP_PORT}
-      EmailSettings__UseMailHog: true
-
-      #New Relic
-      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
-      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
-      NEW_RELIC_LOG: stdout
-      NEW_RELIC_LOG_LEVEL: debug
-      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
-      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
-      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
-
-    ports:
-      - ${NOTIFICATION_API_HOST_PORT}:${CONTAINER_PORT}
-    networks:
-      - minha-rede-local-docker
+  #     # Db
+  #     ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+  #   ports:
+  #     - ${USERS_API_HOST_PORT}:${CONTAINER_PORT}
+  #   networks:
+  #     - minha-rede-local-docker
 
   payments-api:
-    image: projetofiap/payments-api:latest
+    image: projetofiap/payments-api:fase3.v1
     container_name: payments-api
     depends_on:
       rabbitmq:
@@ -165,6 +217,12 @@ services:
       RabbitmqSettings__VirtualHost: /
       RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
       RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+
+      # SQS
+      SqsSettings__Region: ${SQS_REGION}
+      SqsSettings__AccessKey: ${SQS_ACCESS_KEY}
+      SqsSettings__SecretKey: ${SQS_SECRET_KEY}
+      SqsSettings__ServiceUrl: http://localstack:${LOCALSTACK_PORT1}
 
       # Db
       ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${PAYMENTS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
@@ -184,60 +242,29 @@ services:
       - ${PAYMENTS_API_HOST_PORT}:${CONTAINER_PORT}
     networks:
       - minha-rede-local-docker
-  
-  users-api:
-    image: projetofiap/users-api:latest
-    container_name: users-api
-    volumes:
-      - ./secrets/firebase-service-account.json:/app/firebase-service-account.json
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgresdb:
-        condition: service_healthy
-    environment:
-      # RabbitMQ
-      RabbitmqSettings__Address: rabbitmq
-      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
-      RabbitmqSettings__VirtualHost: /
-      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
-      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
-      Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
-
-      # New Relic
-      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
-      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
-      NEW_RELIC_LOG: stdout
-      NEW_RELIC_LOG_LEVEL: debug
-      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
-      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
-      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
-
-      # Db
-      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
-    ports:
-      - ${USERS_API_HOST_PORT}:${CONTAINER_PORT}
-    networks:
-      - minha-rede-local-docker
 
   catalog-api:
-    image: projetofiap/catalog-api:latest
+    image: projetofiap/catalog-api:fase3.v1
     container_name: catalog-api
     depends_on:
-      rabbitmq:
-        condition: service_healthy
       postgresdb:
         condition: service_healthy
-    environment:
-      # RabbitMQ
-      RabbitmqSettings__Address: rabbitmq
-      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
-      RabbitmqSettings__VirtualHost: /
-      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
-      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
+    environment:      
+      # SQS
+      SqsSettings__Region: ${SQS_REGION}
+      SqsSettings__AccessKey: ${SQS_ACCESS_KEY}
+      SqsSettings__SecretKey: ${SQS_SECRET_KEY}
+      SqsSettings__ServiceUrl: http://localstack:${LOCALSTACK_PORT1}
 
-      # Db
+      # Redis
+      Redis__ConnectionString: redis:${REDIS_HOST},password=${REDIS_PASSWORD}
+
+      # PostgreSQL
       ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${CATALOG_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+
+      # MongoDB
+      MongoDB__ConnectionString: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:${MONGO_HOST_HOST}/
+      MongoDB__DatabaseName: ${CATALOG_DB_NAME}
 
       # New Relic
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
@@ -252,6 +279,8 @@ services:
     networks:
       - minha-rede-local-docker
 
+  
+
 networks:
   minha-rede-local-docker:
     external: true
@@ -260,6 +289,8 @@ volumes:
   postgresql-server-config:
   rabbitmq_data:
   mongodb-data:
+  redis-data:
+  redisinsight-data:
 
 # commands
   # network-ls: docker network ls
