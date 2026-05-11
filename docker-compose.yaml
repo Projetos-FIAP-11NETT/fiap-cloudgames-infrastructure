@@ -167,40 +167,39 @@ services:
       timeout: 5s
       retries: 5
 
-  # users-api:
-  #   image: projetofiap/users-api:latest
-  #   container_name: users-api
-  #   volumes:
-  #     - ./secrets/firebase-service-account.json:/app/firebase-service-account.json
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-  #     postgresdb:
-  #       condition: service_healthy
-  #   environment:
-  #     # RabbitMQ
-  #     RabbitmqSettings__Address: rabbitmq
-  #     RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
-  #     RabbitmqSettings__VirtualHost: /
-  #     RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
-  #     RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
-  #     Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
+  users-api:
+    image: projetofiap/users-api:4
+    container_name: users-api
+    volumes:
+      - ./secrets/firebase-service-account.json:/app/firebase-service-account.json
+    depends_on:
+      localstack:
+        condition: service_healthy
+      postgresdb:
+        condition: service_healthy
+    environment:
+      # Amazon SQS (LocalStack)
+      SqsSettings__ServiceURL: http://localstack:${LOCALSTACK_PORT1}
+      SqsSettings__Region: ${SQS_REGION}
+      SqsSettings__AccessKey: ${SQS_ACCESS_KEY}
+      SqsSettings__SecretKey: ${SQS_SECRET_KEY}
+      Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
 
-  #     # New Relic
-  #     NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
-  #     NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
-  #     NEW_RELIC_LOG: stdout
-  #     NEW_RELIC_LOG_LEVEL: debug
-  #     NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
-  #     NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
-  #     NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
+      # New Relic
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: debug
+      NEW_RELIC_APPLICATION_LOGGING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: true
+      NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: true
 
-  #     # Db
-  #     ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
-  #   ports:
-  #     - ${USERS_API_HOST_PORT}:${CONTAINER_PORT}
-  #   networks:
-  #     - minha-rede-local-docker
+      # Db
+      ConnectionStrings__DefaultConnection: Host=postgresdb;Port=${POSTGRES_CONTAINER_PORT};Database=${USERS_DB_NAME};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+    ports:
+      - ${USERS_API_HOST_PORT}:${CONTAINER_PORT}
+    networks:
+      - minha-rede-local-docker
 
   payments-api:
     image: projetofiap/payments-api:fase3.v1
