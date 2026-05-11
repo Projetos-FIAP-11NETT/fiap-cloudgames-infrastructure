@@ -67,29 +67,31 @@ services:
       retries: 5
 
   localstack:
-    image: localstack/localstack-pro:${LOCALSTACK_IMAGE_TAG}
+    image: localstack/localstack:${LOCALSTACK_IMAGE_TAG}
     container_name: localstack
     ports:
       - ${LOCALSTACK_EDGE_PORT}:${LOCALSTACK_EDGE_PORT}
     environment:
-      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
       SERVICES: ${LOCALSTACK_SERVICES}
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-      LOCALSTACK_HOST: localhost
-      HOSTNAME_FROM_LAMBDA: localstack
+      LOCALSTACK_HOST: 172.17.0.1
+      HOSTNAME_FROM_LAMBDA: 172.17.0.1
       LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT: 120000
       LAMBDA_INVOKE_TIMEOUT: 120
       LAMBDA_DOCKER_NETWORK: minha-rede-local-docker
-      DEBUG: 0
+      DEBUG: 1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - localstack-data:/var/lib/localstack
       - ./localstack-init:/etc/localstack/init/ready.d
     networks:
-      - minha-rede-local-docker
+      minha-rede-local-docker:
+        aliases:
+          - localstack
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
       interval: 10s

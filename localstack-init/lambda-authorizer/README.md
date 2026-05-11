@@ -15,7 +15,7 @@ FiapCloudGames.Lambda.Authorizer/
 │       └── AuthorizeTokenQueryHandler.cs # Handler da Query
 ├── Infrastructure/
 │   ├── IJwtTokenService.cs          # Interface para JWT
-│   ├── JwtTokenService.cs           # Implementação (decode sem validação de assinatura)
+│   ├── JwtTokenService.cs           # Implementação (valida JWT via JWKS do Firebase)
 │   ├── IAuthorizationRulesService.cs # Interface de regras
 │   ├── AuthorizationRulesService.cs  # Implementação das regras
 │   ├── IIamPolicyBuilder.cs         # Interface para policy
@@ -67,12 +67,23 @@ O token deve conter:
 
 ## Build Local
 
-```bash
-cd localstack-init/lambda-authorizer
-bash build.sh
+### Pré-requisitos (Windows)
+
+- **.NET SDK** instalado e disponível no `PATH` (comando `dotnet --version` precisa funcionar)
+- Para este projeto, o target é **`net8.0`** (Lambda `dotnet8`). Você pode ter só o **SDK 10** instalado e ainda assim compilar para `net8.0` (desde que os runtimes/packs do .NET 8 estejam disponíveis).
+- (Opcional) **Git Bash / WSL** se você quiser rodar o `create-api-gateway.sh` diretamente no Windows
+- Docker + LocalStack (seu fluxo do repositório)
+
+### Gerar `function.zip` (Windows)
+
+No PowerShell:
+
+```powershell
+cd localstack-init\lambda-authorizer
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-Gera `build/function.zip` pronto para deploy.
+Isso gera o pacote e copia para `localstack-init/function.zip` (arquivo usado pelo bootstrap do LocalStack).
 
 ## Integração com API Gateway
 
@@ -80,23 +91,57 @@ Quando `create-api-gateway.sh` é executado:
 
 1. Compila e empacota o Lambda
 2. Cria função Lambda no LocalStack
-3. Cria authorizer REQUEST baseado no Lambda
+3. Cria authorizer **TOKEN** baseado no Lambda
 4. Vincula authorizer a todas as rotas com `--authorization-type CUSTOM`
 
 ## Desenvolvimento Local
 
-### Decodificação de Token
+### Validação do token no Firebase (como funciona)
 
-A implementação atual (`JwtTokenService`) **não valida assinatura** (ideal para dev local).
+O `JwtTokenService` valida o JWT **contra o JWKS do Firebase** obtido via OpenID Connect:
 
-Para validação com JWKS do Firebase em produção, adicione:
+- **Issuer** esperado: `https://securetoken.google.com/<FIREBASE_PROJECT_ID>`
+- **Audience** esperada: `<FIREBASE_PROJECT_ID>`
+- **Chaves**: `SigningKeys` retornadas pelo endpoint OpenID (`.well-known/openid-configuration`)
 
-```csharp
-// Fetch JWKS
-var jwksUrl = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
-var handler = new JwtSecurityTokenHandler();
-// ... validar contra JWKS
+Variáveis de ambiente suportadas:
+
+- `FIREBASE_PROJECT_ID` (**recomendado**): id do projeto Firebase (ex.: `fiapcloudgames-eaced`)
+- `JWKS_METADATA_ADDRESS` (opcional): sobrescreve a URL do OpenID configuration
+- `ALLOW_DEV_STAGE_BYPASS` (opcional): quando `true`, o script cria rotas com `authorization-type NONE` (sem authorizer)
+
+Em caso de token ausente/inválido, o authorizer retorna **policy IAM com Deny**, e o API Gateway **não chama** a integração do serviço.
+
+## Subir e testar no LocalStack
+
+### 1) Build do pacote
+
+```powershell
+cd localstack-init\lambda-authorizer
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
+
+### 2) Subir o bootstrap do API Gateway/Authorizer
+
+O script de bootstrap fica em `localstack-init/create-api-gateway.sh` e precisa ser executado no ambiente que já sobe o LocalStack (normalmente dentro do container de init, ou via Git Bash/WSL).
+
+Exemplo via bash (Git Bash / WSL), a partir da raiz do repositório:
+
+```bash
+export FIREBASE_PROJECT_ID="fiapcloudgames-eaced"  # ajuste para o seu projeto
+export ALLOW_DEV_STAGE_BYPASS="false"
+bash localstack-init/create-api-gateway.sh
+```
+
+### 3) Teste rápido de token inválido
+
+Na raiz `localstack-init`, rode:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\test-invalid-token.ps1
+```
+
+Se o token for inválido/ausente, o esperado é receber **403** (Deny) e o backend não é invocado.
 
 ### Modificar Regras
 
@@ -145,7 +190,7 @@ public class AuthorizeTokenQueryHandlerTests
 
 ## Próximos Passos
 
-- [ ] Adicionar validação de assinatura JWT com JWKS
+- [ ] Ajustar gateway response (401/403) se quiser mensagens personalizadas
 - [ ] Implementar cache de autenticação (Redis)
 - [ ] Adicionar testes unitários
 - [ ] Centralizar regras em configuração (appsettings.json)

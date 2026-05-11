@@ -4,33 +4,16 @@ using FiapCloudGames.Lambda.Authorizer.Infrastructure;
 namespace FiapCloudGames.Lambda.Authorizer.Application.Queries;
 
 public sealed class AuthorizeTokenQueryHandler
-    (
-        IJwtTokenService jwtService,
-        IAuthorizationRulesService rulesService
-    )
+(
+    IJwtTokenService jwtService
+)
 {
     public async Task<AuthorizationResult> Handle(AuthorizeTokenQuery request, CancellationToken cancellationToken)
     {
         try
         {
-            if (IsDevStageBypassEnabled() && string.Equals(request.Stage, "dev", StringComparison.OrdinalIgnoreCase))
-            {
-                return new AuthorizationResult
-                {
-                    PrincipalId = "dev-bypass",
-                    IsAuthorized = true,
-                    Context = new Dictionary<string, object>
-                    {
-                        { "userId", "dev-bypass" },
-                        { "roles", "dev" }
-                    },
-                    Roles = new List<string> { "dev" }
-                };
-            }
-
-            // Extract token from "Bearer <token>"
             var token = ExtractToken(request.Token);
-            
+
             if (string.IsNullOrEmpty(token))
             {
                 return new AuthorizationResult
@@ -40,9 +23,7 @@ public sealed class AuthorizeTokenQueryHandler
                 };
             }
 
-            // Decode token (without signature validation in dev mode)
             var claims = jwtService.DecodeToken(token);
-            
             if (claims == null)
             {
                 return new AuthorizationResult
@@ -53,18 +34,12 @@ public sealed class AuthorizeTokenQueryHandler
             }
 
             var userId = claims.ContainsKey("sub") ? claims["sub"].ToString() : "unknown";
-            var roles = claims.ContainsKey("roles") 
-                ? ((System.Collections.IEnumerable)claims["roles"]).Cast<object>().Select(r => r.ToString() ?? "").ToList()
-                : new List<string>();
-
-            // Check authorization rules
-            var routeKey = $"{request.HttpMethod} {request.ResourcePath}";
-            var isAuthorized = rulesService.IsAuthorized(routeKey, roles);
+            var roles = ExtractRoles(claims);
 
             return new AuthorizationResult
             {
                 PrincipalId = userId ?? "user",
-                IsAuthorized = isAuthorized,
+                IsAuthorized = true,
                 Context = new Dictionary<string, object>
                 {
                     { "userId", userId ?? "" },
@@ -73,16 +48,12 @@ public sealed class AuthorizeTokenQueryHandler
                 Roles = roles
             };
         }
-        catch (Exception ex)
+        catch
         {
             return new AuthorizationResult
             {
                 PrincipalId = "user",
-                IsAuthorized = false,
-                Context = new Dictionary<string, object>
-                {
-                    { "error", ex.Message }
-                }
+                IsAuthorized = false
             };
         }
     }
@@ -99,9 +70,28 @@ public sealed class AuthorizeTokenQueryHandler
         return authorizationHeader;
     }
 
-    private static bool IsDevStageBypassEnabled()
+    private List<string> ExtractRoles(Dictionary<string, object> claims)
     {
-        var value = Environment.GetEnvironmentVariable("ALLOW_DEV_STAGE_BYPASS");
-        return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+        if (claims.TryGetValue("roles", out var rolesObj))
+            return NormalizeRolesList(rolesObj);
+
+        if (claims.TryGetValue("role", out var roleObj))
+            return NormalizeRolesList(roleObj);
+
+        return new List<string>();
+    }
+
+    private static List<string> NormalizeRolesList(object? rolesObj)
+    {
+        if (rolesObj == null)
+            return new List<string>();
+
+        if (rolesObj is System.Collections.IEnumerable enumerable && !(rolesObj is string))
+        {
+            return enumerable.Cast<object>().Select(r => r?.ToString() ?? "").Where(r => !string.IsNullOrEmpty(r)).ToList();
+        }
+
+        var rolesStr = rolesObj.ToString() ?? "";
+        return string.IsNullOrEmpty(rolesStr) ? new List<string>() : new List<string> { rolesStr };
     }
 }

@@ -11,6 +11,13 @@ public class JwtTokenService : IJwtTokenService
     private static ConfigurationManager<OpenIdConnectConfiguration>? _configurationManager;
     private static readonly object _locker = new();
 
+    static JwtTokenService()
+    {
+        // Keep JWT short claim names (sub, aud, …) so downstream code can use "sub" / custom claims.
+        JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+        JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
+    }
+
     private static ConfigurationManager<OpenIdConnectConfiguration> GetConfigurationManager()
     {
         if (_configurationManager != null) return _configurationManager;
@@ -45,7 +52,7 @@ public class JwtTokenService : IJwtTokenService
     public Dictionary<string, object>? DecodeToken(string token)
     {
         try
-        {
+        {            
             if (string.IsNullOrEmpty(token)) return null;
 
             var configManager = GetConfigurationManager();
@@ -63,6 +70,7 @@ public class JwtTokenService : IJwtTokenService
                 ValidateAudience = true,
                 ValidAudience = projectId,
                 ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(5),
                 RequireSignedTokens = true,
                 IssuerSigningKeys = openIdConfig.SigningKeys
             };
