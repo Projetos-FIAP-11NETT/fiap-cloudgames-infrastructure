@@ -10,7 +10,9 @@ public class IamPolicyBuilder : IIamPolicyBuilder
     public Dictionary<string, object> BuildPolicy(string principalId, bool isAuthorized, string apiId, string stage, string resource)
     {
         var effect = isAuthorized ? "Allow" : "Deny";
-        var arn = $"arn:aws:execute-api:us-east-1:123456789012:{apiId}/{stage}/*";
+        var accountId = Environment.GetEnvironmentVariable("AWS_ACCOUNT_ID") ?? "000000000000";
+        var region = Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1";
+        var arn = $"arn:aws:execute-api:{region}:{accountId}:{apiId}/{stage}/*";
 
         var policy = new Dictionary<string, object>
         {
