@@ -183,7 +183,10 @@ services:
       SqsSettings__Region: ${SQS_REGION}
       SqsSettings__AccessKey: ${SQS_ACCESS_KEY}
       SqsSettings__SecretKey: ${SQS_SECRET_KEY}
+
+      # Firebase
       Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
+      Firebase__ApiKey: ${FIREBASE_APIKEY}
 
       # New Relic
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
