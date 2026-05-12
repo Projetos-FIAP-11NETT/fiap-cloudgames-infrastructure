@@ -71,27 +71,38 @@ services:
     container_name: localstack
     ports:
       - ${LOCALSTACK_EDGE_PORT}:${LOCALSTACK_EDGE_PORT}
+  
     environment:
       SERVICES: ${LOCALSTACK_SERVICES}
       LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
+  
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-      LOCALSTACK_HOST: 172.17.0.1
-      HOSTNAME_FROM_LAMBDA: 172.17.0.1
+  
       LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT: 120000
       LAMBDA_INVOKE_TIMEOUT: 120
+  
+      LAMBDA_EXECUTOR: docker
       LAMBDA_DOCKER_NETWORK: minha-rede-local-docker
+  
       DEBUG: 1
+  
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+  
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - localstack-data:/var/lib/localstack
       - ./localstack-init:/etc/localstack/init/ready.d
+  
     networks:
       minha-rede-local-docker:
         aliases:
           - localstack
+  
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
       interval: 10s

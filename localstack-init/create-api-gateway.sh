@@ -6,6 +6,8 @@ API_NAME="local-api-gateway-v1"
 STAGE_NAME="dev"
 LAMBDA_NAME="fiap-api-authorizer"
 ALLOW_DEV_STAGE_BYPASS="${ALLOW_DEV_STAGE_BYPASS:-false}"
+FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID:-}"
+JWKS_METADATA_ADDRESS="${JWKS_METADATA_ADDRESS:-}"
 CONTAINER_PORT="${CONTAINER_PORT:-8080}"
 NOTIFICATION_API_HOST_PORT="${NOTIFICATION_API_HOST_PORT:-8080}"
 PAYMENTS_API_HOST_PORT="${PAYMENTS_API_HOST_PORT:-8081}"
@@ -49,6 +51,14 @@ ROLE_ARN=$(awslocal iam create-role \
   --query 'Role.Arn' --output text 2>/dev/null || echo "arn:aws:iam::123456789012:role/lambda-authorizer-role")
 
 echo "[localstack-init] Creating/updating Lambda function..."
+AUTHOR_ENV_VARS="ALLOW_DEV_STAGE_BYPASS=$ALLOW_DEV_STAGE_BYPASS"
+if [ -n "$FIREBASE_PROJECT_ID" ]; then
+  AUTHOR_ENV_VARS+=",FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID"
+fi
+if [ -n "$JWKS_METADATA_ADDRESS" ]; then
+  AUTHOR_ENV_VARS+=",JWKS_METADATA_ADDRESS=$JWKS_METADATA_ADDRESS"
+fi
+
 if awslocal lambda get-function --function-name "$LAMBDA_NAME" >/dev/null 2>&1; then
   awslocal lambda update-function-code \
     --function-name "$LAMBDA_NAME" \
@@ -57,41 +67,21 @@ if awslocal lambda get-function --function-name "$LAMBDA_NAME" >/dev/null 2>&1; 
   awslocal lambda update-function-configuration \
     --function-name "$LAMBDA_NAME" \
     --timeout 30 \
-    --environment "Variables={ALLOW_DEV_STAGE_BYPASS=$ALLOW_DEV_STAGE_BYPASS}" >/dev/null
+    --environment "Variables={${AUTHOR_ENV_VARS}}" >/dev/null
 else
   awslocal lambda create-function \
     --function-name "$LAMBDA_NAME" \
-    --runtime dotnet10 \
+    --runtime dotnet8 \
     --role "$ROLE_ARN" \
     --handler "FiapCloudGames.Lambda.Authorizer::FiapCloudGames.Lambda.Authorizer.AuthorizerFunction::FunctionHandler" \
-    --memory-size 512 \
     --timeout 30 \
-    --environment "Variables={ALLOW_DEV_STAGE_BYPASS=$ALLOW_DEV_STAGE_BYPASS}" \
+    --environment "Variables={${AUTHOR_ENV_VARS}}" \
     --zip-file "fileb:///etc/localstack/init/ready.d/function.zip" >/dev/null
 fi
 
 LAMBDA_ARN=$(awslocal lambda get-function --function-name "$LAMBDA_NAME" --query 'Configuration.FunctionArn' --output text)
 
 echo "[localstack-init] Lambda ARN: $LAMBDA_ARN"
-
-PROXY_LAMBDA_NAME="fiap-api-request-proxy"
-PROXY_ZIP_FILE="/etc/localstack/init/ready.d/function.zip"
-
-echo "[localstack-init] Creating/updating request proxy Lambda..."
-if awslocal lambda get-function --function-name "$PROXY_LAMBDA_NAME" >/dev/null 2>&1; then
-  awslocal lambda delete-function --function-name "$PROXY_LAMBDA_NAME" >/dev/null
-fi
-
-awslocal lambda create-function \
-  --function-name "$PROXY_LAMBDA_NAME" \
-  --runtime dotnet10 \
-  --role "$ROLE_ARN" \
-  --handler "FiapCloudGames.Lambda.Authorizer::FiapCloudGames.Lambda.Authorizer.Infrastructure.RequestProxyFunction::FunctionHandler" \
-  --timeout 30 \
-  --environment "Variables={USERS_API_HOST_PORT=$USERS_API_HOST_PORT}" \
-  --zip-file "fileb://${PROXY_ZIP_FILE}" >/dev/null
-
-PROXY_LAMBDA_ARN=$(awslocal lambda get-function --function-name "$PROXY_LAMBDA_NAME" --query 'Configuration.FunctionArn' --output text)
 
 EXISTING_API_ID=$(awslocal apigateway get-rest-apis --query "items[?name=='$API_NAME'].id | [0]" --output text 2>/dev/null || true)
 if [ -n "$EXISTING_API_ID" ] && [ "$EXISTING_API_ID" != "None" ]; then
@@ -104,13 +94,6 @@ API_ID=$(awslocal apigateway create-rest-api --name "$API_NAME" --query 'id' --o
 ROOT_RESOURCE_ID=$(awslocal apigateway get-resources --rest-api-id "$API_ID" --query "items[?path=='/'].id | [0]" --output text)
 echo "[localstack-init] created API $API_NAME -> $API_ID"
 
-awslocal lambda add-permission \
-  --function-name "$PROXY_LAMBDA_NAME" \
-  --statement-id "apigw-proxy-${API_ID}" \
-  --action lambda:InvokeFunction \
-  --principal apigateway.amazonaws.com \
-  --source-arn "arn:aws:execute-api:${AWS_REGION}:000000000000:${API_ID}/*/*/*" >/dev/null 2>&1 || true
-
 echo "[localstack-init] Creating authorizer..."
 AUTHOR_URI="arn:aws:apigateway:${AWS_REGION}:lambda:path/2015-03-31/functions/${LAMBDA_ARN}/invocations"
 AUTH_ID=$(awslocal apigateway create-authorizer \
@@ -118,9 +101,8 @@ AUTH_ID=$(awslocal apigateway create-authorizer \
   --name "lambda-authorizer" \
   --type TOKEN \
   --authorizer-uri "$AUTHOR_URI" \
-  --identity-source "method.request.header.Authorization" \
-  --identity-validation-expression ".+" \
   --authorizer-result-ttl-in-seconds 0 \
+  --identity-source "method.request.header.Authorization" \
   --query 'id' --output text)
 
 awslocal lambda add-permission \
@@ -160,7 +142,7 @@ create_resource_routes() {
       ;;
   esac
 
-  local service_uri="http://host.docker.internal:${service_port}"
+  local service_uri="http://${service_name}:${CONTAINER_PORT}"
 
   echo "[localstack-init] configuring /${path_prefix} -> ${service_uri}"
   local resource_id
@@ -170,48 +152,54 @@ create_resource_routes() {
     --path-part "$path_prefix" \
     --query 'id' --output text)
 
-  if [ "$service_name" != "users-api" ]; then
-    awslocal apigateway put-method \
-      --rest-api-id "$API_ID" \
-      --resource-id "$resource_id" \
-      --http-method ANY \
-      --authorization-type "$AUTHORIZATION_TYPE" \
-      "${AUTHORIZER_ARGS[@]}" >/dev/null
+for method in GET POST PUT DELETE PATCH OPTIONS; do
 
-    awslocal apigateway put-integration \
-      --rest-api-id "$API_ID" \
-      --resource-id "$resource_id" \
-      --http-method ANY \
-      --type HTTP_PROXY \
-      --integration-http-method ANY \
-      --uri "$service_uri" \
-      --passthrough-behavior WHEN_NO_MATCH >/dev/null
+  awslocal apigateway put-method \
+    --rest-api-id "$API_ID" \
+    --resource-id "$resource_id" \
+    --http-method "$method" \
+    --authorization-type "$AUTHORIZATION_TYPE" \
+    "${AUTHORIZER_ARGS[@]}" >/dev/null
 
-    local proxy_resource_id
-    proxy_resource_id=$(awslocal apigateway create-resource \
-      --rest-api-id "$API_ID" \
-      --parent-id "$resource_id" \
-      --path-part "{proxy+}" \
-      --query 'id' --output text)
+  awslocal apigateway put-integration \
+    --rest-api-id "$API_ID" \
+    --resource-id "$resource_id" \
+    --http-method "$method" \
+    --type HTTP_PROXY \
+    --integration-http-method "$method" \
+    --uri "$service_uri" \
+    --passthrough-behavior WHEN_NO_MATCH >/dev/null
 
-    awslocal apigateway put-method \
-      --rest-api-id "$API_ID" \
-      --resource-id "$proxy_resource_id" \
-      --http-method ANY \
-      --authorization-type "$AUTHORIZATION_TYPE" \
-      "${AUTHORIZER_ARGS[@]}" \
-      --request-parameters 'method.request.path.proxy=true' >/dev/null
+done
 
-    awslocal apigateway put-integration \
-      --rest-api-id "$API_ID" \
-      --resource-id "$proxy_resource_id" \
-      --http-method ANY \
-      --type HTTP_PROXY \
-      --integration-http-method ANY \
-      --uri "${service_uri}/{proxy}" \
-      --request-parameters 'integration.request.path.proxy=method.request.path.proxy' \
-      --passthrough-behavior WHEN_NO_MATCH >/dev/null
-  fi
+local proxy_resource_id
+proxy_resource_id=$(awslocal apigateway create-resource \
+  --rest-api-id "$API_ID" \
+  --parent-id "$resource_id" \
+  --path-part "{proxy+}" \
+  --query 'id' --output text)
+
+for method in GET POST PUT DELETE PATCH OPTIONS; do
+
+  awslocal apigateway put-method \
+    --rest-api-id "$API_ID" \
+    --resource-id "$proxy_resource_id" \
+    --http-method "$method" \
+    --authorization-type "$AUTHORIZATION_TYPE" \
+    "${AUTHORIZER_ARGS[@]}" \
+    --request-parameters 'method.request.path.proxy=true' >/dev/null
+
+  awslocal apigateway put-integration \
+    --rest-api-id "$API_ID" \
+    --resource-id "$proxy_resource_id" \
+    --http-method "$method" \
+    --type HTTP_PROXY \
+    --integration-http-method "$method" \
+    --uri "${service_uri}/{proxy}" \
+    --request-parameters 'integration.request.path.proxy=method.request.path.proxy' \
+    --passthrough-behavior WHEN_NO_MATCH >/dev/null
+
+done
 
   if [ "$service_name" = "users-api" ]; then
     echo "[localstack-init] creating public routes for /${path_prefix}/api/v1/User and /${path_prefix}/api/v1/User/Login"
@@ -274,33 +262,6 @@ create_resource_routes() {
               --uri "${service_uri}/api/v1/User/Login" \
               --passthrough-behavior WHEN_NO_MATCH >/dev/null || true
           
-          # Create explicit MakeAdmin PUT method (protected) to avoid 404s when a specific
-          # sub-resource exists (APIG prefers most-specific resource and may return 404
-          # for methods not configured on that resource). This keeps Login/Create public
-          # while protecting admin operations.
-          makeadmin_res_id=$(awslocal apigateway create-resource \
-            --rest-api-id "$API_ID" \
-            --parent-id "$user_res_id" \
-            --path-part "MakeAdmin" \
-            --query 'id' --output text 2>/dev/null || awslocal apigateway get-resources --rest-api-id "$API_ID" --query "items[?path=='/${path_prefix}/api/v1/User/MakeAdmin'].id | [0]" --output text)
-
-          if [ -n "$makeadmin_res_id" ] && [ "$makeadmin_res_id" != "None" ]; then
-            awslocal apigateway put-method \
-              --rest-api-id "$API_ID" \
-              --resource-id "$makeadmin_res_id" \
-              --http-method PUT \
-              --authorization-type "$AUTHORIZATION_TYPE" \
-              "${AUTHORIZER_ARGS[@]}" >/dev/null || true
-
-            awslocal apigateway put-integration \
-              --rest-api-id "$API_ID" \
-              --resource-id "$makeadmin_res_id" \
-              --http-method PUT \
-              --type HTTP_PROXY \
-              --integration-http-method PUT \
-              --uri "${service_uri}/api/v1/User/MakeAdmin" \
-              --passthrough-behavior WHEN_NO_MATCH >/dev/null || true
-          fi
           fi
         fi
       fi

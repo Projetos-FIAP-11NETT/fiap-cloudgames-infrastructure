@@ -15,8 +15,18 @@ public class AuthorizerFunction
     [LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<AuthorizerSerializerContext>))]
     public Dictionary<string, object> FunctionHandler(Dictionary<string, object> @event, ILambdaContext context)
     {
+        context.Logger.LogLine("pfvr, nunca te pedi nada");
+        context.Logger.LogLine(JsonSerializer.Serialize(@event));
         var methodArn = GetEventString(@event, "methodArn");
-        var authorizationToken = GetEventString(@event, "authorizationToken");
+        context.Logger.LogLine("methodArn: " + methodArn);
+        var authorizationToken =
+            GetEventString(@event, "authorizationToken");
+
+        if (string.IsNullOrEmpty(authorizationToken))
+        {
+            authorizationToken = ExtractAuthorizationHeader(@event);
+        }
+        context.Logger.LogLine("authorizationToken: " + authorizationToken);
         var arnParts = methodArn.Split(':');
         var resourceParts = arnParts.Length > 5 ? arnParts[5].Split('/') : new[] { "", "", "", "" };
         var apiId = resourceParts.Length > 0 ? resourceParts[0] : "";
@@ -24,6 +34,7 @@ public class AuthorizerFunction
 
         try
         {
+            context.Logger.LogLine("oi");
             var token = ExtractToken(authorizationToken);
 
             if (string.IsNullOrEmpty(token))
@@ -32,10 +43,11 @@ public class AuthorizerFunction
                 return BuildDenyPolicy("unauthorized-user", methodArn);
             }
 
-            var claims = JwtService.DecodeToken(token);
+            var claims = JwtService.DecodeToken(token, context);
             if (claims == null)
             {
                 context.Logger.LogLine("Authorization refused: Firebase token validation failed.");
+                context.Logger.LogLine("emanon");
                 return BuildDenyPolicy("unauthorized-user", methodArn);
             }
 
@@ -55,6 +67,27 @@ public class AuthorizerFunction
             context.Logger.LogLine($"Authorization error: {ex.Message}");
             return BuildDenyPolicy("error", methodArn);
         }
+    }
+
+    private static string ExtractAuthorizationHeader(Dictionary<string, object> evt)
+    {
+        if (!evt.TryGetValue("headers", out var headersObj))
+            return "";
+
+        if (headersObj is JsonElement headersElement &&
+            headersElement.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in headersElement.EnumerateObject())
+            {
+                if (prop.Name.Equals("authorization", StringComparison.OrdinalIgnoreCase) ||
+                    prop.Name.Equals("authorizationToken", StringComparison.OrdinalIgnoreCase))
+                {
+                    return prop.Value.GetString() ?? "";
+                }
+            }
+        }
+
+        return "";
     }
 
     private static string GetEventString(Dictionary<string, object> evt, string key)
