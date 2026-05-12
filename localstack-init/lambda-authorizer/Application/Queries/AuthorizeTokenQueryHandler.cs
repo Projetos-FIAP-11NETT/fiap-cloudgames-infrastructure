@@ -1,3 +1,4 @@
+using Amazon.Lambda.Core;
 using FiapCloudGames.Lambda.Authorizer.Domain;
 using FiapCloudGames.Lambda.Authorizer.Infrastructure;
 
@@ -8,7 +9,7 @@ public sealed class AuthorizeTokenQueryHandler
     IJwtTokenService jwtService
 )
 {
-    public async Task<AuthorizationResult> Handle(AuthorizeTokenQuery request, CancellationToken cancellationToken)
+    public async Task<AuthorizationResult> Handle(AuthorizeTokenQuery request, CancellationToken cancellationToken, ILambdaContext context)
     {
         try
         {
@@ -23,7 +24,7 @@ public sealed class AuthorizeTokenQueryHandler
                 };
             }
 
-            var claims = jwtService.DecodeToken(token);
+            var claims = jwtService.DecodeToken(token, context);
             if (claims == null)
             {
                 return new AuthorizationResult
