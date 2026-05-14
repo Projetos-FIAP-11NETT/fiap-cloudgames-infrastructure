@@ -67,8 +67,9 @@ services:
       retries: 5
 
   localstack:
-    image: localstack/localstack:${LOCALSTACK_IMAGE_TAG}
+    image: localstack/localstack-pro:${LOCALSTACK_IMAGE_TAG}
     container_name: localstack
+  
     ports:
       - ${LOCALSTACK_EDGE_PORT}:${LOCALSTACK_EDGE_PORT}
   
@@ -81,17 +82,18 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
   
-      LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT: 120000
-      LAMBDA_INVOKE_TIMEOUT: 120
+      DEBUG: 1
+      LS_LOG: trace
+  
+      HOSTNAME_EXTERNAL: localstack
   
       LAMBDA_EXECUTOR: docker
+  
       LAMBDA_DOCKER_NETWORK: minha-rede-local-docker
+      MAIN_DOCKER_NETWORK: minha-rede-local-docker
   
-      DEBUG: 1
-  
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+      LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT: 120000
+      LAMBDA_INVOKE_TIMEOUT: 120
   
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -102,12 +104,6 @@ services:
       minha-rede-local-docker:
         aliases:
           - localstack
-  
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   notification-api:
     image: projetofiap/notification-api:latest
