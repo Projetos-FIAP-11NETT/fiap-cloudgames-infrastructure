@@ -7,6 +7,10 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+Push-Location -Path $PSScriptRoot
+
+try {
+
 Write-Host "[deploy] Checking .NET SDK version..."
 $dotnetVersion = dotnet --version
 Write-Host "[deploy] .NET SDK version: $dotnetVersion"
@@ -23,7 +27,14 @@ Move-Item -Path "..\lambda-authorizer.sln" -Destination ".\" -Force
 Write-Host "[deploy] Moving function.zip to parent directory..."
 Move-Item -Path "function.zip" -Destination "..\" -Force
 
+Write-Host "[deploy] Normalizing create-api-gateway.sh line endings in LocalStack..."
+docker exec localstack sh -lc "sed -i 's/\r$//' /etc/localstack/init/ready.d/create-api-gateway.sh && chmod +x /etc/localstack/init/ready.d/create-api-gateway.sh"
+
 Write-Host "[deploy] Executing LocalStack API Gateway setup script..."
 docker exec localstack bash -lc "/etc/localstack/init/ready.d/create-api-gateway.sh"
 
 Write-Host "[deploy] Build and deploy process completed!"
+}
+finally {
+	Pop-Location
+}

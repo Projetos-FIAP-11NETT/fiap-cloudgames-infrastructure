@@ -1,23 +1,31 @@
 services:
-
   localstack:
     container_name: localstack
-    image: localstack/localstack:latest
+    image: localstack/localstack-pro:${LOCALSTACK_IMAGE_TAG}
     ports:
       - "${LOCALSTACK_HOST}:${LOCALSTACK_PORT1}:${LOCALSTACK_PORT1}"
-      - "${LOCALSTACK_HOST}:${LOCALSTACK_PORT2}:${LOCALSTACK_PORT2}"
-      
+      - "${LOCALSTACK_HOST}:${LOCALSTACK_PORT2}:${LOCALSTACK_PORT2}"      
     environment:
-      SERVICES: sqs,lambda,ses,iam,cloudwatch,logs
+      SERVICES: ${LOCALSTACK_SERVICES}
       LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_TOKEN}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
       DEBUG: ${DEBUG:-0}
+      LS_LOG: trace
+      HOSTNAME_EXTERNAL: localstack
       LAMBDA_EXECUTOR: docker
-      LAMBDA_DOCKER_NETWORK: minha-rede-local-docker 
+      LAMBDA_DOCKER_NETWORK: minha-rede-local-docker
+      MAIN_DOCKER_NETWORK: minha-rede-local-docker
     volumes:
-      - "./localstack/volume:/var/lib/localstack"
+      - localstack-data:/var/lib/localstack
       - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./localstack-init:/etc/localstack/init/ready.d
     networks:
-      - minha-rede-local-docker  
+      minha-rede-local-docker:
+        aliases:
+          - localstack 
       
   # terraform:
   #   image: hashicorp/terraform:latest
@@ -191,7 +199,7 @@ services:
 
       # Firebase
       Firebase__CredentialPath: ${FIREBASE_CREDENTIAL_PATH}
-      Firebase__ApiKey: ${FIREBASE_APIKEY}
+      Firebase__ApiKey: ${FIREBASE_API_KEY}
 
       # New Relic
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
@@ -294,6 +302,7 @@ networks:
   minha-rede-local-docker:
     external: true
 volumes:
+  localstack-data:
   postgresql-data:
   postgresql-server-config:
   rabbitmq_data:

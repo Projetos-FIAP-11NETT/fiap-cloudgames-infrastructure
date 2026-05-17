@@ -1,5 +1,3 @@
-using FiapCloudGames.Lambda.Authorizer.Domain;
-
 namespace FiapCloudGames.Lambda.Authorizer.Application.Queries;
 
 public class AuthorizeTokenQuery

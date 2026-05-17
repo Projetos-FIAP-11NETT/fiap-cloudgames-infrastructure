@@ -10,7 +10,7 @@ public interface IAuthorizationRulesService
 public class AuthorizationRulesService : IAuthorizationRulesService
 {
     // Static cached rules - initialized once per Lambda container lifetime
-    private static readonly Lazy<List<AuthorizationRule>> CachedRules = 
+    private static readonly Lazy<List<AuthorizationRule>> CachedRules =
         new(() => InitializeRulesStatic(), LazyThreadSafetyMode.ExecutionAndPublication);
 
     public bool IsAuthorized(string routeKey, List<string> userRoles)
@@ -32,10 +32,10 @@ public class AuthorizationRulesService : IAuthorizationRulesService
         if (rule.AllowAnonymous)
             return true;
 
-        if (!userRoles.Any())
+        if (userRoles.Count == 0)
             return false;
 
-        return rule.AllowedRoles.Any(allowedRole => 
+        return rule.AllowedRoles.Any(allowedRole =>
             userRoles.Any(userRole => userRole.Equals(allowedRole, StringComparison.OrdinalIgnoreCase)));
     }
 
@@ -55,34 +55,34 @@ public class AuthorizationRulesService : IAuthorizationRulesService
 
     private static List<AuthorizationRule> InitializeRulesStatic()
     {
-        return new List<AuthorizationRule>
-        {
+        return
+        [
             // Catalog API - public read, authenticated write
-            new() { Method = "GET", Path = "/catalog*", AllowedRoles = new List<string> { "user", "admin" }, AllowAnonymous = true },
-            new() { Method = "POST", Path = "/catalog*", AllowedRoles = new List<string> { "admin" } },
-            new() { Method = "PUT", Path = "/catalog*", AllowedRoles = new List<string> { "admin" } },
-            new() { Method = "DELETE", Path = "/catalog*", AllowedRoles = new List<string> { "admin" } },
+            new() { Method = "GET", Path = "/catalog*", AllowedRoles = ["user", "admin"], AllowAnonymous = true },
+            new() { Method = "POST", Path = "/catalog*", AllowedRoles = ["admin"] },
+            new() { Method = "PUT", Path = "/catalog*", AllowedRoles = ["admin"] },
+            new() { Method = "DELETE", Path = "/catalog*", AllowedRoles = ["admin"] },
 
             // Users API - admin only
-            new() { Method = "GET", Path = "/users*", AllowedRoles = new List<string> { "admin" } },
-            new() { Method = "POST", Path = "/users*", AllowedRoles = new List<string> { "admin" } },
-            new() { Method = "PUT", Path = "/users*", AllowedRoles = new List<string> { "admin" } },
-            new() { Method = "DELETE", Path = "/users*", AllowedRoles = new List<string> { "admin" } },
+            new() { Method = "GET", Path = "/users*", AllowedRoles = ["admin"] },
+            new() { Method = "POST", Path = "/users*", AllowedRoles = ["admin"] },
+            new() { Method = "PUT", Path = "/users*", AllowedRoles = ["admin"] },
+            new() { Method = "DELETE", Path = "/users*", AllowedRoles = ["admin"] },
 
             // Payments API - authenticated users
-            new() { Method = "GET", Path = "/payments*", AllowedRoles = new List<string> { "user", "admin" } },
-            new() { Method = "POST", Path = "/payments*", AllowedRoles = new List<string> { "user", "admin" } },
-            new() { Method = "PUT", Path = "/payments*", AllowedRoles = new List<string> { "admin" } },
-            new() { Method = "DELETE", Path = "/payments*", AllowedRoles = new List<string> { "admin" } },
+            new() { Method = "GET", Path = "/payments*", AllowedRoles = ["user", "admin"] },
+            new() { Method = "POST", Path = "/payments*", AllowedRoles = ["user", "admin"] },
+            new() { Method = "PUT", Path = "/payments*", AllowedRoles = ["admin"] },
+            new() { Method = "DELETE", Path = "/payments*", AllowedRoles = ["admin"] },
 
             // Notification API - authenticated users
-            new() { Method = "GET", Path = "/notification*", AllowedRoles = new List<string> { "user", "admin" } },
-            new() { Method = "POST", Path = "/notification*", AllowedRoles = new List<string> { "user", "admin" } },
-            new() { Method = "DELETE", Path = "/notification*", AllowedRoles = new List<string> { "admin" } },
+            new() { Method = "GET", Path = "/notification*", AllowedRoles = ["user", "admin"] },
+            new() { Method = "POST", Path = "/notification*", AllowedRoles = ["user", "admin"] },
+            new() { Method = "DELETE", Path = "/notification*", AllowedRoles = ["admin"] },
 
             // Health/public endpoints
             new() { Method = "GET", Path = "/health", AllowAnonymous = true },
             new() { Method = "GET", Path = "/ready", AllowAnonymous = true },
-        };
+        ];
     }
 }

@@ -4,12 +4,12 @@ namespace FiapCloudGames.Lambda.Authorizer.Infrastructure;
 
 public sealed class RequestProxyFunction
 {
-    public Dictionary<string, object> FunctionHandler(Dictionary<string, object> @event, ILambdaContext context)
+    public static Dictionary<string, object> FunctionHandler(Dictionary<string, object> @event)
     {
         // Simple gate: return 401 if no authorizer context
         if (@event == null)
             return BuildResponse(401);
-        
+
         return BuildResponse(204);
     }
 

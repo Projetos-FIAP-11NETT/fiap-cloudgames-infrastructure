@@ -28,8 +28,8 @@ public static class MinimalJwtDecoder
                 payloadBase64 += new string('=', padding);
 
             var payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(payloadBase64));
-            var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson) 
-                ?? new Dictionary<string, object>();
+            var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson)
+                ?? [];
 
             return payload;
         }

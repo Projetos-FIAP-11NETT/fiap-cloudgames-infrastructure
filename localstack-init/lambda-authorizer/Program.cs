@@ -13,12 +13,9 @@ public class AuthorizerFunction
     private static readonly JwtTokenService JwtService = new();
 
     [LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<AuthorizerSerializerContext>))]
-    public Dictionary<string, object> FunctionHandler(Dictionary<string, object> @event, ILambdaContext context)
+    public static Dictionary<string, object> FunctionHandler(Dictionary<string, object> @event, ILambdaContext context)
     {
-        context.Logger.LogLine("pfvr, nunca te pedi nada");
-        context.Logger.LogLine(JsonSerializer.Serialize(@event));
         var methodArn = GetEventString(@event, "methodArn");
-        context.Logger.LogLine("methodArn: " + methodArn);
         var authorizationToken =
             GetEventString(@event, "authorizationToken");
 
@@ -26,15 +23,13 @@ public class AuthorizerFunction
         {
             authorizationToken = ExtractAuthorizationHeader(@event);
         }
-        context.Logger.LogLine("authorizationToken: " + authorizationToken);
         var arnParts = methodArn.Split(':');
-        var resourceParts = arnParts.Length > 5 ? arnParts[5].Split('/') : new[] { "", "", "", "" };
+        var resourceParts = arnParts.Length > 5 ? arnParts[5].Split('/') : ["", "", "", ""];
         var apiId = resourceParts.Length > 0 ? resourceParts[0] : "";
         var stage = resourceParts.Length > 1 ? resourceParts[1] : "";
 
         try
         {
-            context.Logger.LogLine("oi");
             var token = ExtractToken(authorizationToken);
 
             if (string.IsNullOrEmpty(token))
@@ -43,15 +38,14 @@ public class AuthorizerFunction
                 return BuildDenyPolicy("unauthorized-user", methodArn);
             }
 
-            var claims = JwtService.DecodeToken(token, context);
+            var claims = JwtService.DecodeToken(token);
             if (claims == null)
             {
                 context.Logger.LogLine("Authorization refused: Firebase token validation failed.");
-                context.Logger.LogLine("emanon");
                 return BuildDenyPolicy("unauthorized-user", methodArn);
             }
 
-            var userId = claims.ContainsKey("sub") ? claims["sub"].ToString() : "unknown";
+            var userId = claims.TryGetValue("sub", out object? value) ? value.ToString() : "unknown";
             var roles = ExtractRoles(claims);
 
             var contextData = new Dictionary<string, object>
@@ -60,7 +54,7 @@ public class AuthorizerFunction
                 { "roles", string.Join(",", roles) }
             };
 
-            return BuildAllowPolicy(userId ?? "user", apiId, stage, methodArn, contextData);
+            return BuildAllowPolicy(userId ?? "user", apiId, stage, contextData);
         }
         catch (Exception ex)
         {
@@ -104,19 +98,19 @@ public class AuthorizerFunction
         };
     }
 
-    private string ExtractToken(string authorizationHeader)
+    private static string ExtractToken(string authorizationHeader)
     {
         if (string.IsNullOrEmpty(authorizationHeader))
             return string.Empty;
 
         const string bearer = "Bearer ";
         if (authorizationHeader.StartsWith(bearer, StringComparison.OrdinalIgnoreCase))
-            return authorizationHeader.Substring(bearer.Length);
+            return authorizationHeader[bearer.Length..];
 
         return authorizationHeader;
     }
 
-    private List<string> ExtractRoles(Dictionary<string, object> claims)
+    private static List<string> ExtractRoles(Dictionary<string, object> claims)
     {
         if (claims.TryGetValue("roles", out var rolesObj))
             return NormalizeRolesList(rolesObj);
@@ -124,21 +118,21 @@ public class AuthorizerFunction
         if (claims.TryGetValue("role", out var roleObj))
             return NormalizeRolesList(roleObj);
 
-        return new List<string>();
+        return [];
     }
 
     private static List<string> NormalizeRolesList(object? rolesObj)
     {
         if (rolesObj == null)
-            return new List<string>();
+            return [];
 
-        if (rolesObj is System.Collections.IEnumerable enumerable && !(rolesObj is string))
+        if (rolesObj is System.Collections.IEnumerable enumerable && rolesObj is not string)
         {
-            return enumerable.Cast<object>().Select(r => r?.ToString() ?? "").Where(r => !string.IsNullOrEmpty(r)).ToList();
+            return [.. enumerable.Cast<object>().Select(r => r?.ToString() ?? "").Where(r => !string.IsNullOrEmpty(r))];
         }
 
         var rolesStr = rolesObj?.ToString() ?? "";
-        return string.IsNullOrEmpty(rolesStr) ? new List<string>() : new List<string> { rolesStr };
+        return string.IsNullOrEmpty(rolesStr) ? [] : [rolesStr];
     }
 
     private static Dictionary<string, object> BuildDenyPolicy(string principalId, string methodArn)
@@ -165,7 +159,7 @@ public class AuthorizerFunction
         };
     }
 
-    private Dictionary<string, object> BuildAllowPolicy(string principalId, string apiId, string stage, string methodArn, Dictionary<string, object> context)
+    private static Dictionary<string, object> BuildAllowPolicy(string principalId, string apiId, string stage, Dictionary<string, object> context)
     {
         var policy = new Dictionary<string, object>
         {

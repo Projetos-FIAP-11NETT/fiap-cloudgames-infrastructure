@@ -1,4 +1,3 @@
-using Amazon.Lambda.Core;
 using FiapCloudGames.Lambda.Authorizer.Domain;
 using FiapCloudGames.Lambda.Authorizer.Infrastructure;
 
@@ -9,7 +8,7 @@ public sealed class AuthorizeTokenQueryHandler
     IJwtTokenService jwtService
 )
 {
-    public async Task<AuthorizationResult> Handle(AuthorizeTokenQuery request, CancellationToken cancellationToken, ILambdaContext context)
+    public async Task<AuthorizationResult> Handle(AuthorizeTokenQuery request)
     {
         try
         {
@@ -24,7 +23,7 @@ public sealed class AuthorizeTokenQueryHandler
                 };
             }
 
-            var claims = jwtService.DecodeToken(token, context);
+            var claims = jwtService.DecodeToken(token);
             if (claims == null)
             {
                 return new AuthorizationResult
@@ -34,7 +33,7 @@ public sealed class AuthorizeTokenQueryHandler
                 };
             }
 
-            var userId = claims.ContainsKey("sub") ? claims["sub"].ToString() : "unknown";
+            var userId = claims.TryGetValue("sub", out object? value) ? value.ToString() : "unknown";
             var roles = ExtractRoles(claims);
 
             return new AuthorizationResult
@@ -59,19 +58,19 @@ public sealed class AuthorizeTokenQueryHandler
         }
     }
 
-    private string ExtractToken(string authorizationHeader)
+    private static string ExtractToken(string authorizationHeader)
     {
         if (string.IsNullOrEmpty(authorizationHeader))
             return string.Empty;
 
         const string bearer = "Bearer ";
         if (authorizationHeader.StartsWith(bearer, StringComparison.OrdinalIgnoreCase))
-            return authorizationHeader.Substring(bearer.Length);
+            return authorizationHeader[bearer.Length..];
 
         return authorizationHeader;
     }
 
-    private List<string> ExtractRoles(Dictionary<string, object> claims)
+    private static List<string> ExtractRoles(Dictionary<string, object> claims)
     {
         if (claims.TryGetValue("roles", out var rolesObj))
             return NormalizeRolesList(rolesObj);
@@ -79,20 +78,20 @@ public sealed class AuthorizeTokenQueryHandler
         if (claims.TryGetValue("role", out var roleObj))
             return NormalizeRolesList(roleObj);
 
-        return new List<string>();
+        return [];
     }
 
     private static List<string> NormalizeRolesList(object? rolesObj)
     {
         if (rolesObj == null)
-            return new List<string>();
+            return [];
 
-        if (rolesObj is System.Collections.IEnumerable enumerable && !(rolesObj is string))
+        if (rolesObj is System.Collections.IEnumerable enumerable && rolesObj is not string)
         {
-            return enumerable.Cast<object>().Select(r => r?.ToString() ?? "").Where(r => !string.IsNullOrEmpty(r)).ToList();
+            return [.. enumerable.Cast<object>().Select(r => r?.ToString() ?? "").Where(r => !string.IsNullOrEmpty(r))];
         }
 
         var rolesStr = rolesObj.ToString() ?? "";
-        return string.IsNullOrEmpty(rolesStr) ? new List<string>() : new List<string> { rolesStr };
+        return string.IsNullOrEmpty(rolesStr) ? [] : [rolesStr];
     }
 }
