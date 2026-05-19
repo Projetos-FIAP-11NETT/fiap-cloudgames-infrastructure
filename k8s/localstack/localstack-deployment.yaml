@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: localstack
+  labels:
+    app: localstack
+  annotations:
+    description: "Deployment do LocalStack para simular AWS no cluster local."
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: localstack
+
+  template:
+    metadata:
+      labels:
+        app: localstack
+
+    spec:
+      containers:
+        - name: localstack
+          image: localstack/localstack-pro
+
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 4566
+
+          env:
+            - name: SERVICES
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: SERVICES
+
+            - name: AWS_DEFAULT_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: AWS_DEFAULT_REGION
+
+            - name: DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: DEBUG
+
+            - name: LS_LOG
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: LS_LOG
+
+            - name: HOSTNAME_EXTERNAL
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: HOSTNAME_EXTERNAL
+
+            - name: LOCALSTACK_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: localstack-secret
+                  key: LOCALSTACK_AUTH_TOKEN
+                  optional: false
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: localstack-secret
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: localstack-secret
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: localstack-secret
+                  key: AWS_SESSION_TOKEN
+                  optional: true
+
+            - name: LOCALSTACK_HOST
+              value: "localstack.default.svc.cluster.local"
+
+            - name: LAMBDA_RUNTIME_EXECUTOR
+              value: "kubernetes"
+
+            - name: KUBERNETES_SERVICE_HOST
+              value: "kubernetes.default.svc.cluster.local"
+
+          volumeMounts:
+            - name: localstack-data
+              mountPath: /var/lib/localstack
+
+          securityContext:
+            privileged: true
+            runAsUser: 0
+
+          startupProbe:
+            httpGet:
+              path: /_localstack/health
+              port: 4566
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 120
+
+          readinessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: 4566
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+
+          livenessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: 4566
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+
+      volumes:
+        - name: localstack-data
+          emptyDir: {}
