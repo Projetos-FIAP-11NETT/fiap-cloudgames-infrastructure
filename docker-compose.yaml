@@ -18,6 +18,7 @@ services:
       LAMBDA_EXECUTOR: docker
       LAMBDA_DOCKER_NETWORK: minha-rede-local-docker
       MAIN_DOCKER_NETWORK: minha-rede-local-docker
+      LAMBDA_DOCKER_FLAGS: -e NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY_LAMBDA}    
     volumes:
       - localstack-data:/var/lib/localstack
       - "/var/run/docker.sock:/var/run/docker.sock"
@@ -27,42 +28,6 @@ services:
         aliases:
           - localstack 
       
-  # terraform:
-  #   image: hashicorp/terraform:latest
-  #   container_name: terraform
-  #   working_dir: /infra
-  #   entrypoint: ["/bin/sh", "-c"]
-  #   command: "terraform init && terraform apply -auto-approve && tail -f /dev/null"
-  #   environment:
-  #     AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-  #     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-  #     AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
-  #     TF_VAR_localstack_endpoint: http://localstack:${LOCALSTACK_PORT1}
-  #   volumes:
-  #     - ./terraform:/infra
-  #   networks:
-  #     - minha-rede-local-docker
-  #   depends_on:
-  #     - localstack
-
-  # terraform:
-  #   image: hashicorp/terraform:latest
-  #   container_name: terraform
-  #   working_dir: /workspace
-  #   environment:
-  #     AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-  #     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-  #     AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
-  #     TF_VAR_localstack_endpoint: http://localstack:${LOCALSTACK_PORT1} # LocalStack endpoint
-  #   volumes:
-  #     - ./terraform:/workspace
-  #   networks:
-  #     - minha-rede-local-docker
-  #   depends_on:
-  #     - localstack
-  #   entrypoint: ["terraform"]
-  #   command: ["init"]
- 
   mongodb:
     image: mongo:7
     container_name: mongodb
@@ -226,13 +191,6 @@ services:
       postgresdb:
         condition: service_healthy
     environment:
-      # RabbitMQ
-      RabbitmqSettings__Address: rabbitmq
-      RabbitmqSettings__Port: ${RABBITMQ_AMQP_PORT}
-      RabbitmqSettings__VirtualHost: /
-      RabbitmqSettings__Username: ${RABBITMQ_DEFAULT_USER}
-      RabbitmqSettings__Password: ${RABBITMQ_DEFAULT_PASS}
-
       # SQS
       SqsSettings__Region: ${SQS_REGION}
       SqsSettings__AccessKey: ${SQS_ACCESS_KEY}
@@ -260,7 +218,7 @@ services:
       - minha-rede-local-docker
 
   catalog-api:
-    image: projetofiap/catalog-api:fase3.v1
+    image: projetofiap/catalog-api:latest
     container_name: catalog-api
     depends_on:
       postgresdb:
