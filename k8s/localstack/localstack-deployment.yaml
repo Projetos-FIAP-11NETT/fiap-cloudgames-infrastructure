@@ -98,6 +98,9 @@ spec:
             - name: KUBERNETES_SERVICE_HOST
               value: "kubernetes.default.svc.cluster.local"
 
+            - name: GATEWAY_LISTEN
+              value: "0.0.0.0:4566"
+
           volumeMounts:
             - name: localstack-data
               mountPath: /var/lib/localstack
