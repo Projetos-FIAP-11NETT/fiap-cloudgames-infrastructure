@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: localstack-config
+  labels:
+    app: localstack
+  annotations:
+    description: "ConfigMap com a configuracao do LocalStack para execucao local no Kubernetes."
+
+data:
+  SERVICES: "iam,sts,lambda,apigateway,sqs,sns"
+  AWS_DEFAULT_REGION: "us-east-1"
+  DEBUG: "0"
+  LS_LOG: "trace"
+  HOSTNAME_EXTERNAL: "localstack"
