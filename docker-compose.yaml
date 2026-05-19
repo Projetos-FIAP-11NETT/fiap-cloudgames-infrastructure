@@ -210,7 +210,7 @@ services:
       - minha-rede-local-docker
 
   catalog-api:
-    image: projetofiap/catalog-api:fase3.v1
+    image: projetofiap/catalog-api:latest
     container_name: catalog-api
     depends_on:
       postgresdb:
