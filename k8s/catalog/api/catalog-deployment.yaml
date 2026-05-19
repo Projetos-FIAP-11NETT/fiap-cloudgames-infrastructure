@@ -50,7 +50,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
-                  key: MONGO_DATABASE
+                  key: MONGO_DATABASE_CATALOG
 
             # Redis
             - name: Redis__ConnectionString
