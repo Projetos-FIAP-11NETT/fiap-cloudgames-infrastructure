@@ -45,17 +45,8 @@ spec:
                   name: shared-secret
                   key: MONGO_EXPRESS_URL
 
-            - name: ME_CONFIG_BASICAUTH_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: shared-secret
-                  key: MONGO_EXPRESS_USER
-
-            - name: ME_CONFIG_BASICAUTH_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: shared-secret
-                  key: MONGO_EXPRESS_PASSWORD
+            - name: ME_CONFIG_BASICAUTH
+              value: "false"
 
           livenessProbe:
             httpGet:
