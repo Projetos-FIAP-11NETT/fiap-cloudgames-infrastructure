@@ -21,10 +21,10 @@ provider "aws" {
 
   endpoints {
 
-    apigateway = "http://localhost:4566"
-    lambda     = "http://localhost:4566"
-    iam        = "http://localhost:4566"
-    sts        = "http://localhost:4566"
+    apigateway = "http://localhost:30466"
+    lambda     = "http://localhost:30466"
+    iam        = "http://localhost:30466"
+    sts        = "http://localhost:30466"
 
   }
 }

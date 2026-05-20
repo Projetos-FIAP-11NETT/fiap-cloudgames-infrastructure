@@ -215,6 +215,10 @@ resource "aws_lambda_permission" "api_gateway" {
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*/*"
 }
 
+# ========================
+# PUBLIC RESOURCES: /users/api/v1/User
+# ========================
+
 resource "aws_api_gateway_resource" "users_api_public" {
   count       = local.public_users_enabled ? 1 : 0
   rest_api_id = aws_api_gateway_rest_api.main.id
@@ -244,6 +248,14 @@ resource "aws_api_gateway_method" "users_user_public_post" {
   authorization = "NONE"
 }
 
+resource "aws_api_gateway_method_response" "users_user_public_post_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_user_public[0].id
+  http_method = aws_api_gateway_method.users_user_public_post[0].http_method
+  status_code = "200"
+}
+
 resource "aws_api_gateway_integration" "users_user_public_post" {
   count                   = local.public_users_enabled ? 1 : 0
   rest_api_id             = aws_api_gateway_rest_api.main.id
@@ -252,6 +264,17 @@ resource "aws_api_gateway_integration" "users_user_public_post" {
   integration_http_method = "POST"
   type                    = "HTTP_PROXY"
   uri                     = "http://users-api:${var.container_port}/api/v1/User"
+  content_handling        = "CONVERT_TO_TEXT"
+}
+
+resource "aws_api_gateway_integration_response" "users_user_public_post_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_user_public[0].id
+  http_method = aws_api_gateway_method.users_user_public_post[0].http_method
+  status_code = aws_api_gateway_method_response.users_user_public_post_200[0].status_code
+
+  depends_on = [aws_api_gateway_integration.users_user_public_post]
 }
 
 resource "aws_api_gateway_method" "users_user_public_options" {
@@ -274,6 +297,10 @@ resource "aws_api_gateway_integration" "users_user_public_options" {
   }
 }
 
+# ========================
+# PUBLIC RESOURCES: /users/api/v1/User/Login
+# ========================
+
 resource "aws_api_gateway_resource" "users_login_public" {
   count       = local.public_users_enabled ? 1 : 0
   rest_api_id = aws_api_gateway_rest_api.main.id
@@ -289,6 +316,14 @@ resource "aws_api_gateway_method" "users_login_public_post" {
   authorization = "NONE"
 }
 
+resource "aws_api_gateway_method_response" "users_login_public_post_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_login_public[0].id
+  http_method = aws_api_gateway_method.users_login_public_post[0].http_method
+  status_code = "200"
+}
+
 resource "aws_api_gateway_integration" "users_login_public_post" {
   count                   = local.public_users_enabled ? 1 : 0
   rest_api_id             = aws_api_gateway_rest_api.main.id
@@ -297,6 +332,17 @@ resource "aws_api_gateway_integration" "users_login_public_post" {
   integration_http_method = "POST"
   type                    = "HTTP_PROXY"
   uri                     = "http://users-api:${var.container_port}/api/v1/User/Login"
+  content_handling        = "CONVERT_TO_TEXT"
+}
+
+resource "aws_api_gateway_integration_response" "users_login_public_post_200" {
+  count       = local.public_users_enabled ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.users_login_public[0].id
+  http_method = aws_api_gateway_method.users_login_public_post[0].http_method
+  status_code = aws_api_gateway_method_response.users_login_public_post_200[0].status_code
+
+  depends_on = [aws_api_gateway_integration.users_login_public_post]
 }
 
 resource "aws_api_gateway_method" "users_login_public_options" {
@@ -319,6 +365,10 @@ resource "aws_api_gateway_integration" "users_login_public_options" {
   }
 }
 
+# ========================
+# DEPLOYMENT
+# ========================
+
 resource "aws_api_gateway_deployment" "deploy" {
   rest_api_id = aws_api_gateway_rest_api.main.id
 
@@ -332,6 +382,8 @@ resource "aws_api_gateway_deployment" "deploy" {
     aws_api_gateway_integration.users_user_public_options,
     aws_api_gateway_integration.users_login_public_post,
     aws_api_gateway_integration.users_login_public_options,
+    aws_api_gateway_integration_response.users_user_public_post_200,
+    aws_api_gateway_integration_response.users_login_public_post_200,
   ]
 
   lifecycle {

@@ -16,7 +16,7 @@ lambda_name = "fiap-api-authorizer"
 allow_dev_stage_bypass = "false"
 
 # Internal container port used by services (matches docker-compose)
-container_port = "8080"
+container_port = "80"
 
 # Optional: Firebase project id used by the authorizer (leave empty if not used)
 firebase_project_id = ""
