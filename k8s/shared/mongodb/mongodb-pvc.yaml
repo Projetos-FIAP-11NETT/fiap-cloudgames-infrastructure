@@ -3,8 +3,12 @@ kind: PersistentVolumeClaim
 
 metadata:
   name: mongodb-pvc
+
   labels:
     app: mongodb
+
+  annotations:
+    description: "PersistentVolumeClaim para o banco de dados MongoDB, garantindo armazenamento persistente para os dados do banco mesmo que o pod seja reiniciado ou recriado."
 
 spec:
   accessModes:
@@ -13,5 +17,3 @@ spec:
   resources:
     requests:
       storage: 10Gi
-
-  storageClassName: standard

@@ -67,13 +67,7 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
 
-  volumeClaimTemplates:
-    - metadata:
-        name: mongodb-storage
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        storageClassName: standard
-        resources:
-          requests:
-            storage: 10Gi
+      volumes:
+      - name: mongodb-storage
+        persistentVolumeClaim:
+          claimName: mongodb-pvc
