@@ -23,6 +23,10 @@ data:
   NEW_RELIC_APPLICATION_LOGGING_ENABLED: "true"
   NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: "true"
   NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: "true"
+  # LocalStack
+  LOCALSTACK_ENDPOINT: "http://localstack:4566"
   #SQS
-  SQS_SERVICE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566"
-  SQS_EMAIL_QUEUE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/notification-queue"
+  SQS_SERVICE_URL: "http://localstack:4566"
+  SQS_EMAIL_QUEUE_URL: "http://localstack:4566/000000000000/notification-queue"
+  #SNS
+  SNS_SERVICE_URL: "http://localstack:4566"
