@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: users
-          image: projetofiap/users-api:latest
+          image: projetofiap/users-api:fase3.v1
           
           ports:
             - containerPort: 8080
@@ -67,6 +67,7 @@ spec:
                 configMapKeyRef:
                   name: shared-config
                   key: SQS_EMAIL_QUEUE_URL
+                  
             
             # Db
             - name: ConnectionStrings__DefaultConnection
@@ -85,7 +86,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
-                  key: NEW_RELIC_APP_NAME 
+                  key: NEW_RELIC_APP_NAME_USERS
             - name: NEW_RELIC_LOG
               valueFrom:
                 configMapKeyRef:
@@ -111,3 +112,21 @@ spec:
                 configMapKeyRef:
                   name: shared-config
                   key: NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED
+            - name: NEW_RELIC_APPLICATION_DISTRIBUTED_TRACING_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_DISTRIBUTED_TRACING_ENABLED
+                  
+            # Firebase
+            - name: Firebase__CredentialPath
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: FIREBASE_CREDENTIAL_PATH
+                  
+            - name: Firebase__ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: FIREBASE_APIKEY
