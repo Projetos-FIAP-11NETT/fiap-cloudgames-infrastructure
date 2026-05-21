@@ -21,6 +21,8 @@ spec:
         app: localstack
 
     spec:
+      serviceAccountName: localstack-sa
+
       containers:
         - name: localstack
           image: localstack/localstack-pro
@@ -29,6 +31,7 @@ spec:
 
           ports:
             - containerPort: 4566
+              hostPort: 4566
 
           env:
             - name: SERVICES
@@ -89,21 +92,32 @@ spec:
                   key: AWS_SESSION_TOKEN
                   optional: true
 
-            - name: LOCALSTACK_HOST
-              value: "localstack.default.svc.cluster.local"
+            - name: HOSTNAME_FROM_LAMBDA
+              value: "host.docker.internal"
+
+            - name: EDGE_PORT
+              value: "30466"
 
             - name: LAMBDA_RUNTIME_EXECUTOR
-              value: "kubernetes"
-
-            - name: KUBERNETES_SERVICE_HOST
-              value: "kubernetes.default.svc.cluster.local"
+              value: "docker"
 
             - name: GATEWAY_LISTEN
               value: "0.0.0.0:4566"
 
+            - name: LAMBDA_DOCKER_FLAGS
+              value: "--add-host=host.docker.internal:172.17.0.1"
+
+            - name: LAMBDA_DOCKER_DNS
+              value: "172.17.0.1"
+
+            - name: LAMBDA_SNAP_START_ENABLED
+              value: "0"
+
           volumeMounts:
             - name: localstack-data
               mountPath: /var/lib/localstack
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
 
           securityContext:
             privileged: true
@@ -138,12 +152,15 @@ spec:
 
           resources:
             requests:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "500m"
             limits:
-              memory: "2Gi"
-              cpu: "1000m"
+              memory: "3Gi"
+              cpu: "1500m"
 
       volumes:
         - name: localstack-data
           emptyDir: {}
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock

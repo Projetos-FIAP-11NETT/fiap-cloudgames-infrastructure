@@ -12,9 +12,9 @@ public class AuthorizerFunction
 {
     private static readonly JwtTokenService JwtService = new();
 
-    [LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<AuthorizerSerializerContext>))]
     public static Dictionary<string, object> FunctionHandler(Dictionary<string, object> @event, ILambdaContext context)
     {
+        context.Logger.LogLine("FunctionHandler called");
         var methodArn = GetEventString(@event, "methodArn");
         var authorizationToken =
             GetEventString(@event, "authorizationToken");

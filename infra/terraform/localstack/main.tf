@@ -31,6 +31,10 @@ resource "aws_lambda_function" "authorizer" {
   timeout          = 60
   memory_size      = 1024
 
+  snap_start {
+    apply_on = "None"
+  }
+
   environment {
     variables = merge(
       {

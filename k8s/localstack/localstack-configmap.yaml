@@ -9,8 +9,8 @@ metadata:
     description: "ConfigMap com a configuracao do LocalStack para execucao local no Kubernetes."
 
 data:
-  SERVICES: "iam,sts,lambda,apigateway,sqs,sns"
+  SERVICES: "s3,sqs,sns,iam,sts,lambda,apigateway,logs,kms,ses,cloudwatch"
   AWS_DEFAULT_REGION: "us-east-1"
   DEBUG: "0"
   LS_LOG: "trace"
-  HOSTNAME_EXTERNAL: "localstack"
+  HOSTNAME_EXTERNAL: "host.docker.internal"
