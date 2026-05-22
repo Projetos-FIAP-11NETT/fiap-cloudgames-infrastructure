@@ -37,3 +37,8 @@ variable "jwks_metadata_address" {
   type    = string
   default = ""
 }
+
+variable "localstack_port" {
+  type    = string
+  default = "30466"
+}

@@ -11,6 +11,9 @@ metadata:
 spec:
   replicas: 1
 
+  strategy:
+    type: Recreate
+
   selector:
     matchLabels:
       app: localstack
@@ -22,6 +25,8 @@ spec:
 
     spec:
       serviceAccountName: localstack-sa
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
 
       containers:
         - name: localstack
@@ -31,7 +36,6 @@ spec:
 
           ports:
             - containerPort: 4566
-              hostPort: 4566
 
           env:
             - name: SERVICES
@@ -63,6 +67,12 @@ spec:
                 configMapKeyRef:
                   name: localstack-config
                   key: HOSTNAME_EXTERNAL
+
+            - name: DNS_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name: localstack-config
+                  key: DNS_SERVER
 
             - name: LOCALSTACK_AUTH_TOKEN
               valueFrom:

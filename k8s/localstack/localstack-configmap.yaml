@@ -14,3 +14,4 @@ data:
   DEBUG: "0"
   LS_LOG: "trace"
   HOSTNAME_EXTERNAL: "host.docker.internal"
+  DNS_SERVER: "10.96.0.10"

@@ -2,7 +2,6 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using FiapCloudGames.Lambda.Authorizer.Infrastructure;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 [assembly: LambdaSerializer(typeof(DefaultLambdaJsonSerializer))]
 
@@ -184,12 +183,4 @@ public class AuthorizerFunction
         return policy;
     }
 
-}
-
-[JsonSerializable(typeof(Dictionary<string, object>))]
-[JsonSerializable(typeof(List<Dictionary<string, object>>))]
-[JsonSerializable(typeof(List<object>))]
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-public partial class AuthorizerSerializerContext : JsonSerializerContext
-{
 }

@@ -25,9 +25,9 @@ data:
   NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: "true"
   NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: "true"
   # LocalStack
-  LOCALSTACK_ENDPOINT: "http://localhost:30466/"
+  LOCALSTACK_ENDPOINT: "http://localstack:4566/"
   #SQS
-  SQS_SERVICE_URL: "http://localhost:30466"
-  SQS_EMAIL_QUEUE_URL: "http://localhost:30466/000000000000/notification-queue"
+  SQS_SERVICE_URL: "http://localstack:4566"
+  SQS_EMAIL_QUEUE_URL: "http://localstack:4566/000000000000/notification-queue"
   #SNS
-  SNS_SERVICE_URL: "http://localhost:30466"
+  SNS_SERVICE_URL: "http://localstack:4566"
