@@ -114,9 +114,15 @@ spec:
             - name: GATEWAY_LISTEN
               value: "0.0.0.0:4566"
 
-            - name: LAMBDA_DOCKER_FLAGS
-              value: "--add-host=host.docker.internal:172.17.0.1"
+            - name: NEW_RELIC_LICENSE_KEY_LAMBDA
+              valueFrom:
+                secretKeyRef:
+                  name: new-relic-secret
+                  key: NEW_RELIC_LICENSE_KEY
 
+            - name: LAMBDA_DOCKER_FLAGS
+              value: "--add-host=host.docker.internal:172.17.0.1 -e NEW_RELIC_LICENSE_KEY=$(NEW_RELIC_LICENSE_KEY_LAMBDA)"
+            
             - name: LAMBDA_DOCKER_DNS
               value: "172.17.0.1"
 
