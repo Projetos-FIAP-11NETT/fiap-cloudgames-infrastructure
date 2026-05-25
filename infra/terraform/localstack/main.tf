@@ -91,10 +91,6 @@ locals {
       service_name = "payments-api"
       path_prefix  = "payments"
     }
-    notification = {
-      service_name = "notification-api"
-      path_prefix  = "notification"
-    }
   }
 
   service_method_routes = merge([

@@ -405,10 +405,9 @@ create_resource_routes() {
 #
 # SERVICES
 #
-create_resource_routes "catalog-api"      "catalog"
-create_resource_routes "users-api"        "users"
-create_resource_routes "payments-api"     "payments"
-create_resource_routes "notification-api" "notification"
+create_resource_routes "catalog-api"  "catalog"
+create_resource_routes "users-api"    "users"
+create_resource_routes "payments-api" "payments"
 
 #
 # DEPLOY
@@ -435,7 +434,6 @@ echo ""
 echo "PROTECTED ROUTES:"
 echo "/payments/*"
 echo "/catalog/*"
-echo "/notification/*"
 echo "=================================================="
 
 exit 0
