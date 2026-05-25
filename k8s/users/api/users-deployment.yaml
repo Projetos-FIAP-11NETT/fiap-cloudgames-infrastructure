@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: users
-          image: projetofiap/users-api:fase3.v1
+          image: projetofiap/users-api:latest
           
           ports:
             - containerPort: 8080
