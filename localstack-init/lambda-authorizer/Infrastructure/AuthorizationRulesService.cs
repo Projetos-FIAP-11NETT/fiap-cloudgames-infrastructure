@@ -75,11 +75,6 @@ public class AuthorizationRulesService : IAuthorizationRulesService
             new() { Method = "PUT", Path = "/payments*", AllowedRoles = ["admin"] },
             new() { Method = "DELETE", Path = "/payments*", AllowedRoles = ["admin"] },
 
-            // Notification API - authenticated users
-            new() { Method = "GET", Path = "/notification*", AllowedRoles = ["user", "admin"] },
-            new() { Method = "POST", Path = "/notification*", AllowedRoles = ["user", "admin"] },
-            new() { Method = "DELETE", Path = "/notification*", AllowedRoles = ["admin"] },
-
             // Health/public endpoints
             new() { Method = "GET", Path = "/health", AllowAnonymous = true },
             new() { Method = "GET", Path = "/ready", AllowAnonymous = true },

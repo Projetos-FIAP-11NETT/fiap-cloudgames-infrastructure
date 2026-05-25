@@ -145,7 +145,7 @@ services:
       retries: 5
 
   users-api:
-    image: projetofiap/users-api:4
+    image: projetofiap/users-api:latest
     container_name: users-api
     volumes:
       - ./secrets/firebase-service-account.json:/app/firebase-service-account.json
@@ -183,7 +183,7 @@ services:
       - minha-rede-local-docker
 
   payments-api:
-    image: projetofiap/payments-api:fase3.v1
+    image: projetofiap/payments-api:latest
     container_name: payments-api
     depends_on:
       rabbitmq:
