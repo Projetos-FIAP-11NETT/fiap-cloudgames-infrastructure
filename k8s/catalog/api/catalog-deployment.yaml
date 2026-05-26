@@ -39,37 +39,52 @@ spec:
               cpu: "500m"
           
           env:
-            # RabbitMQ
-            - name: RabbitmqSettings__Address
-              valueFrom:
-                configMapKeyRef:
-                  name: shared-config
-                  key: RABBITMQ_ADDRESS
-            
-            - name: RabbitmqSettings__Port
-              valueFrom:
-                configMapKeyRef:
-                  name: shared-config
-                  key: RABBITMQ_PORT
-            
-            - name: RabbitmqSettings__VirtualHost
-              valueFrom:
-                configMapKeyRef:
-                  name: shared-config
-                  key: RABBITMQ_VIRTUAL_HOST
-            
-            - name: RabbitmqSettings__Username
+            # Mongodb
+            - name: MongoDB__ConnectionString
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
-                  key: RABBITMQ_USERNAME
-            
-            - name: RabbitmqSettings__Password
+                  key: MONGO_CONNECTION_STRING
+
+
+            # Redis
+            - name: Redis__ConnectionString
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
-                  key: RABBITMQ_PASSWORD
-            
+                  key: REDIS_CONNECTION_STRING
+
+            # SQS
+            - name: SqsSettings__Region
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: SQS_REGION
+
+            - name: SqsSettings__AccessKey
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: SQS_ACCESS_KEY
+
+            - name: SqsSettings__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secret
+                  key: SQS_SECRET_KEY
+
+            - name: SqsSettings__ServiceURL
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: SQS_SERVICE_URL
+
+            - name: SqsSettings__EmailQueueURL
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: SQS_EMAIL_QUEUE_URL
+
             # Db
             - name: ConnectionStrings__DefaultConnection
               valueFrom:
@@ -87,7 +102,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
-                  key: NEW_RELIC_APP_NAME 
+                  key: NEW_RELIC_APP_NAME_CATALOGS
             - name: NEW_RELIC_LOG
               valueFrom:
                 configMapKeyRef:
@@ -113,3 +128,9 @@ spec:
                 configMapKeyRef:
                   name: shared-config
                   key: NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED
+            - name: NEW_RELIC_APPLICATION_DISTRIBUTED_TRACING_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: NEW_RELIC_DISTRIBUTED_TRACING_ENABLED
+                  
