@@ -3,6 +3,17 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+#secrets
+*secret.yaml
+
+# local stack files
+license.json
+machine.json
+*.pem
+*.crt
+*.key
+*.pickle
+
 # User-specific files
 *.rsuser
 *.suo
@@ -390,6 +401,25 @@ healthchecksdb
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+crash.log
+override.tf
+override.tf.json
+terraform.tfvars
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+
+# Lambda package zips and build artifacts
+**/function.zip
+localstack-init/*/function.zip
+localstack-init/**/function.zip
+infra/terraform/**/lambda/*.zip
+
+
 # Ionide (cross platform F# VS Code tools) working folder
 **/.ionide/
 
@@ -416,3 +446,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Visual Studio Installer Projects output folder
+*.zip

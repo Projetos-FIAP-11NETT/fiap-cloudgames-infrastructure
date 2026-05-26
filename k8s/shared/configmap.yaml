@@ -11,9 +11,25 @@ data:
   RABBITMQ_ADDRESS: "rabbitmq"
   RABBITMQ_PORT: "5672"
   RABBITMQ_VIRTUAL_HOST: "/"
+  # MongoDB
+  MONGODB_ADDRESS: "mongodb"
+  MONGODB_PORT: "27017"
+  # Redis
+  REDIS_ADDRESS: "redis"
+  REDIS_PORT: "6379"
   # new relic
   NEW_RELIC_LOG: "stdout"
   NEW_RELIC_LOG_LEVEL: "debug"
   NEW_RELIC_APPLICATION_LOGGING_ENABLED: "true"
   NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: "true"
   NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED: "true"
+  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: "true"
+  # LocalStack
+  LOCALSTACK_ENDPOINT: "http://localstack:4566/"
+  
+  #SQS
+  SQS_SERVICE_URL: "http://localstack:4566"
+  SQS_EMAIL_QUEUE_URL: "http://localstack:4566/000000000000/notification-queue"
+
+  #SNS
+  SNS_SERVICE_URL: "http://localstack:4566"
