@@ -106,8 +106,8 @@ O `JwtTokenService` valida o JWT **contra o JWKS do Firebase** obtido via OpenID
 
 Variáveis de ambiente suportadas:
 
-- `FIREBASE_PROJECT_ID` (**recomendado**): id do projeto Firebase (ex.: `fiapcloudgames-eaced`)
-- `JWKS_METADATA_ADDRESS` (opcional): sobrescreve a URL do OpenID configuration
+- `FIREBASE_PROJECT_ID` (**obrigatório**, salvo se usar `JWKS_METADATA_ADDRESS`): id do projeto Firebase. A partir dele o authorizer monta a URL de metadados OpenID do Google (`https://securetoken.google.com/<project>/.well-known/openid-configuration`) e baixa as chaves públicas (JWKS) para validar a assinatura.
+- `JWKS_METADATA_ADDRESS` (opcional): sobrescreve a URL do documento OpenID/JWKS — útil para outro provedor de identidade. Sem ele **nem** `FIREBASE_PROJECT_ID`, o authorizer falha de forma segura e **nega** todas as requisições.
 - `ALLOW_DEV_STAGE_BYPASS` (opcional): quando `true`, o script cria rotas com `authorization-type NONE` (sem authorizer)
 
 Em caso de token ausente/inválido, o authorizer retorna **policy IAM com Deny**, e o API Gateway **não chama** a integração do serviço.
@@ -128,7 +128,7 @@ O script de bootstrap fica em `localstack-init/create-api-gateway.sh` e precisa 
 Exemplo via bash (Git Bash / WSL), a partir da raiz do repositório:
 
 ```bash
-export FIREBASE_PROJECT_ID="fiapcloudgames-eaced"  # ajuste para o seu projeto
+export FIREBASE_PROJECT_ID="<seu-projeto-firebase>"  # ajuste para o seu projeto
 export ALLOW_DEV_STAGE_BYPASS="false"
 bash localstack-init/create-api-gateway.sh
 ```
