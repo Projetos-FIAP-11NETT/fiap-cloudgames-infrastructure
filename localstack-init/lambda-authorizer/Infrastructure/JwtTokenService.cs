@@ -25,7 +25,7 @@ public class JwtTokenService : IJwtTokenService
         {
             if (_configurationManager != null) return _configurationManager;
 
-            // Prefer explicit metadata address env var, otherwise try Firebase project id.
+            // Prefer explicit metadata address env var, otherwise build it from the Firebase project id.
             var metadataAddress = Environment.GetEnvironmentVariable("JWKS_METADATA_ADDRESS");
             var firebaseProject = Environment.GetEnvironmentVariable("FIREBASE_PROJECT_ID");
 
@@ -36,8 +36,8 @@ public class JwtTokenService : IJwtTokenService
 
             if (string.IsNullOrEmpty(metadataAddress))
             {
-                // Fallback to the project's firebase id used previously
-                metadataAddress = "https://securetoken.google.com/fiapcloudgames-eaced/.well-known/openid-configuration";
+                throw new InvalidOperationException(
+                    "Missing configuration: set JWKS_METADATA_ADDRESS or FIREBASE_PROJECT_ID environment variable.");
             }
 
             _configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
@@ -59,7 +59,12 @@ public class JwtTokenService : IJwtTokenService
 
             var handler = new JwtSecurityTokenHandler();
 
-            var projectId = Environment.GetEnvironmentVariable("FIREBASE_PROJECT_ID") ?? "fiapcloudgames-eaced";
+            var projectId = Environment.GetEnvironmentVariable("FIREBASE_PROJECT_ID");
+            if (string.IsNullOrEmpty(projectId))
+            {
+                throw new InvalidOperationException(
+                    "Missing configuration: set FIREBASE_PROJECT_ID environment variable.");
+            }
             var validIssuer = $"https://securetoken.google.com/{projectId}";
 
             var validationParameters = new TokenValidationParameters

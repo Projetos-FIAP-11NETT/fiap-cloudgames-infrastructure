@@ -4,6 +4,9 @@
 # AWS region
 aws_region = "us-east-1"
 
+aws_access_key = "test"
+aws_secret_key = "test"
+
 # Stage name for API Gateway
 stage_name = "dev"
 
@@ -18,8 +21,10 @@ allow_dev_stage_bypass = "false"
 # Internal container port used by services (matches docker-compose)
 container_port = "80"
 
-# Optional: Firebase project id used by the authorizer (leave empty if not used)
-firebase_project_id = ""
+# Obrigatório (a menos que use jwks_metadata_address): id do projeto Firebase usado pelo
+# authorizer para validar os tokens. Sem nenhum dos dois, o authorizer nega tudo (fail-closed).
+firebase_project_id = "<seu-projeto-firebase>"
 
-# Optional: JWKS metadata address for token validation (leave empty if not used)
+# Opcional: sobrescreve a URL do documento OpenID/JWKS (use para outro provedor de identidade).
+# Deixe vazio para usar o Firebase a partir de firebase_project_id.
 jwks_metadata_address = ""
