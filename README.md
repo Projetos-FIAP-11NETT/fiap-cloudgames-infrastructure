@@ -52,7 +52,7 @@ fiap-cloudgames-infrastructure/
 │   ├── variables.tf
 │   └── outputs.tf
 ├── k8s/                          # Manifestos Kubernetes
-│   ├── shared/                   # MongoDB, Redis, RabbitMQ, PgAdmin, RedisInsight
+│   ├── shared/                   # MongoDB, Redis, Elasticsearch, RabbitMQ, PgAdmin, RedisInsight
 │   ├── localstack/               # LocalStack (NodePort 30466)
 │   ├── catalog/                  # Catalog API + PostgreSQL próprio
 │   ├── users/                    # Users API + PostgreSQL próprio
