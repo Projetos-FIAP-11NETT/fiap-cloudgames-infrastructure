@@ -24,13 +24,17 @@ spec:
         app: postgresdb-catalog
 
     spec:
+      # Garante que o usuário do processo postgres (uid 999) tenha permissão de escrita no volume EBS
+      securityContext:
+        fsGroup: 999
+
       containers:
         - name: postgresdb-catalog
           image: postgres:16
 
           ports:
             - containerPort: 5432
-          
+
           resources:
             requests: #minimum resources guaranteed to the container
               memory: "256Mi"
@@ -43,22 +47,50 @@ spec:
           env:
             - name: POSTGRES_DB
               value: "catalog-db"
-            
+
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
                   key: POSTGRES_USER
-            
+
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
                   key: POSTGRES_PASSWORD
-          
+
+            # Usa subdiretório para evitar conflito com "lost+found" criado em volumes EBS recém-formatados
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
+
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - $(POSTGRES_USER)
+                - -d
+                - catalog-db
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - $(POSTGRES_USER)
+                - -d
+                - catalog-db
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
 
       volumes:
       - name: postgres-storage
