@@ -54,6 +54,19 @@ spec:
                   name: shared-secret
                   key: REDIS_CONNECTION_STRING
 
+            # Elasticsearch
+            - name: Elasticsearch__Uri
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: ELASTICSEARCH_URI
+
+            - name: Elasticsearch__IndexName
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: ELASTICSEARCH_INDEX
+
             # SQS
             - name: SqsSettings__Region
               valueFrom:
