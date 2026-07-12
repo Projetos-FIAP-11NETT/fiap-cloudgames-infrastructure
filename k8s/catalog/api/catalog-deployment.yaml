@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: catalog
-          image: 334574873271.dkr.ecr.us-east-1.amazonaws.com/projetofiap/catalog-api
+          image: 953464735072.dkr.ecr.us-east-1.amazonaws.com/projetofiap/catalog-api
           
           ports:
             - containerPort: 8080
