@@ -337,3 +337,39 @@ image: projetofiap/users-api:1.2.0
 ---
 
 Dúvidas ou problemas? Abra uma issue ou contate a equipe de infraestrutura.
+
+
+## DEPLOY AWS
+
+# 1. Atualizar arquivo .aws/credentials com novas credenciais da sessão da AWS
+# 2. Atualizar Account ID da AWS nos arquivos de deployment no trecho abaixo:
+
+/k8s/catalog/api/catolog-deployment.yaml  
+/k8s/paymets/api/payments-deployment.yaml  
+/k8s/users/api/users-deployment.yaml  
+
+```
+  image: [ACCOUNT_ID].dkr.ecr.us-east-1.amazonaws.com/projetofiap/users-api:1
+```
+# 3. Subir a infra via terraform
+```
+  terraform init (1x)
+  cd infra/terraform/aws-rede-eks
+  terraform plan
+  terraform apply
+
+  cd infra/terraform/aws-apigateway-lambda-auth
+  terraform plan
+  terraform apply
+```
+
+# 4. Conectar ao cluster
+```
+  aws eks update-kubeconfig --name fiapcloudgames-cluster --region us-east-1
+```
+
+# 5. Criar segredos e config maps
+```
+  Set-ExecutionPolicy -Scope Process Bypass  (Para habilitar execução de scripts)
+  ./k8s/register-secrets-configs.ps1
+```

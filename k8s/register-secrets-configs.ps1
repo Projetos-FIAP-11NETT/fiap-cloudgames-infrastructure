@@ -25,6 +25,8 @@ $sharedConfigArgs = @(
     "--from-literal=LOCALSTACK_ENDPOINT=http://localstack:4566/",
     "--from-literal=SQS_SERVICE_URL=http://localstack:4566",
     "--from-literal=SQS_EMAIL_QUEUE_URL=http://localstack:4566/000000000000/notification-queue",
+    "--from-literal=ELASTICSEARCH_URI=teste",
+    "--from-literal=ELASTICSEARCH_INDEX=teste",
     "--dry-run=client", "-o", "yaml"
 )
 kubectl @sharedConfigArgs | kubectl apply -f -

@@ -126,7 +126,6 @@ resource "kubernetes_service_v1" "internal_nlb" {
 
   metadata {
     name      = each.value.service_name
-    namespace = "apps"
     annotations = {
       "service.beta.kubernetes.io/aws-load-balancer-type"            = "external"
       "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type" = "ip"

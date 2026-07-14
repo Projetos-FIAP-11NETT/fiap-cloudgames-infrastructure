@@ -272,6 +272,44 @@ resource "aws_eks_cluster" "main" {
 #
 # PASSO 5 (EKS) — NODE GROUP
 #
+resource "aws_launch_template" "nodes" {
+  name_prefix = "${var.node_group_name}-lt-"
+
+  # Hop limit 1 (padrão do launch template automático do EKS) bloqueia o
+  # acesso ao IMDS de dentro dos Pods (rede do container fica a 2 hops do
+  # IMDS, não 1). Sem isso, addons como o EBS CSI Driver não conseguem
+  # credenciais via role do node.
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
+  # disk_size não pode ser definido no aws_eks_node_group quando um
+  # launch_template é usado — precisa vir daqui.
+  # Ajuste device_name se o ami_type não for AL2/AL2023 (ex: Bottlerocket
+  # usa /dev/xvdb para o volume de dados).
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      volume_size = var.node_disk_size
+      volume_type = "gp3"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = var.node_group_name
+    }
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 resource "aws_eks_node_group" "apps" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = var.node_group_name
@@ -283,7 +321,11 @@ resource "aws_eks_node_group" "apps" {
   ami_type       = var.node_ami_type
   capacity_type  = var.node_capacity_type
   instance_types = var.node_instance_types
-  disk_size      = var.node_disk_size
+
+  launch_template {
+    id      = aws_launch_template.nodes.id
+    version = aws_launch_template.nodes.latest_version
+  }
 
   scaling_config {
     desired_size = var.node_desired_size
@@ -293,4 +335,12 @@ resource "aws_eks_node_group" "apps" {
 
   # Garante que rotas/NAT existem antes dos nodes tentarem se registrar no cluster.
   depends_on = [aws_route_table_association.private]
+}
+
+#  EBS ADDON
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name             = var.cluster_name
+  addon_name                = "aws-ebs-csi-driver"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
 }
