@@ -20,6 +20,10 @@ spec:
         app: elasticsearch
 
     spec:
+      # Garante que o usuário do processo elasticsearch (uid 1000) tenha permissão de escrita no volume EBS
+      securityContext:
+        fsGroup: 1000
+
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3

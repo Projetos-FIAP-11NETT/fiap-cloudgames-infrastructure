@@ -339,8 +339,13 @@ resource "aws_eks_node_group" "apps" {
 
 #  EBS ADDON
 resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name             = var.cluster_name
+  cluster_name             = aws_eks_cluster.main.name
   addon_name                = "aws-ebs-csi-driver"
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
+
+  # Garante que o cluster e os nodes ja estao prontos antes de criar o addon
+  # (sem isso o Terraform nao tem edge de dependencia e tenta criar em paralelo,
+  # falhando com "No cluster found" enquanto o cluster ainda esta subindo).
+  depends_on = [aws_eks_node_group.apps]
 }
