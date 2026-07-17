@@ -137,6 +137,11 @@ resource "kubernetes_service_v1" "internal_nlb" {
   spec {
     type = "LoadBalancer"
 
+    # O AWS Load Balancer Controller preenche este campo automaticamente via
+    # webhook ao reconciliar o Service; declarar aqui evita que o Terraform
+    # veja isso como drift e tente substituir o Service (e a NLB) a toda apply.
+    load_balancer_class = "service.k8s.aws/nlb"
+
     selector = {
       app = each.value.service_name
     }
@@ -282,6 +287,18 @@ resource "aws_lambda_permission" "api_gateway" {
   function_name = aws_lambda_function.authorizer.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*/*"
+}
+
+# O API Gateway invoca o Lambda Authorizer usando um ARN de origem diferente
+# do das integrações normais (".../authorizers/<id>", nao ".../stage/metodo/recurso"),
+# entao precisa de uma permission propria - sem isso a chamada falha com
+# "Execution failed due to configuration error: Invalid permissions on Lambda function".
+resource "aws_lambda_permission" "api_gateway_authorizer" {
+  statement_id  = "AllowExecutionFromApiGatewayAuthorizer"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.authorizer.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/authorizers/${aws_api_gateway_authorizer.lambda_authorizer.id}"
 }
 
 # ========================
@@ -451,6 +468,7 @@ resource "aws_api_gateway_deployment" "deploy" {
     aws_api_gateway_integration.service_options_integrations,
     aws_api_gateway_integration.service_proxy_options_integrations,
     aws_lambda_permission.api_gateway,
+    aws_lambda_permission.api_gateway_authorizer,
     aws_api_gateway_integration.users_user_public_post,
     aws_api_gateway_integration.users_user_public_options,
     aws_api_gateway_integration.users_login_public_post,

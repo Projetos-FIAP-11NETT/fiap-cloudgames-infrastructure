@@ -26,6 +26,12 @@ spec:
           
           ports:
             - containerPort: 8080
+
+          volumeMounts:
+            - name: firebase-credentials
+              mountPath: /app/firebase-service-account.json
+              subPath: firebase-service-account.json
+              readOnly: true
           
           resources:
             requests: # recursos mínimos
@@ -130,3 +136,8 @@ spec:
                 secretKeyRef:
                   name: shared-secret
                   key: FIREBASE_APIKEY
+
+      volumes:
+        - name: firebase-credentials
+          secret:
+            secretName: firebase-credentials

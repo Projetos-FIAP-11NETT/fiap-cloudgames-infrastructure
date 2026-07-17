@@ -15,7 +15,6 @@ spec:
     - ReadWriteOnce
 
   storageClassName: auto-ebs-sc
-
   resources:
     requests:
       storage: 10Gi
