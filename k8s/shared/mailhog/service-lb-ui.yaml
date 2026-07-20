@@ -1,0 +1,26 @@
+# Opcional: expõe apenas a UI web (porta 8025) via um Network Load Balancer,
+# seguindo o mesmo padrão de NLB interno usado pelos demais serviços do
+# cluster (catalog-api, users-api, payments-api).
+#
+# Se preferir não gastar um NLB da conta do AWS Academy, use `kubectl
+# port-forward svc/mailhog 8025:8025 -n apps` para acessar a UI localmente
+# e não aplique este manifesto.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailhog-ui
+  #namespace: apps
+  labels:
+    app: mailhog
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+spec:
+  type: LoadBalancer
+  selector:
+    app: mailhog
+  ports:
+    - name: http
+      port: 8025
+      targetPort: 8025
+      protocol: TCP

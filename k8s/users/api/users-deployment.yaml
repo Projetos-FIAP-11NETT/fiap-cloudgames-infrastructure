@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: users
-          image: 953464735072.dkr.ecr.us-east-1.amazonaws.com/projetofiap/users-api:1
+          image: 456080716497.dkr.ecr.us-east-1.amazonaws.com/projetofiap/users-api:1
           
           ports:
             - containerPort: 8080
