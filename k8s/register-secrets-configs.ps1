@@ -23,8 +23,11 @@ $sharedConfigArgs = @(
     "--from-literal=NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED=true",
     "--from-literal=NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=true",
     "--from-literal=LOCALSTACK_ENDPOINT=http://localstack:4566/",
-    "--from-literal=SQS_SERVICE_URL=http://localstack:4566",
-    "--from-literal=SQS_EMAIL_QUEUE_URL=http://localstack:4566/000000000000/notification-queue",
+    # SQS_SERVICE_URL vazio = AWS real: os apps caem no credential chain padrao
+    # do SDK (IAM role do node via IMDS) em vez de credenciais fixas, que nao
+    # funcionam com as credenciais temporarias do AWS Academy.
+    "--from-literal=SQS_SERVICE_URL=",
+    "--from-literal=SQS_EMAIL_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/375157863909/notification-queue",
     "--from-literal=ELASTICSEARCH_URI=teste",
     "--from-literal=ELASTICSEARCH_INDEX=teste",
     "--dry-run=client", "-o", "yaml"
