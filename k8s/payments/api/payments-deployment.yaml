@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: payments
-          image: 953464735072.dkr.ecr.us-east-1.amazonaws.com/projetofiap/payments-api
+          image: 456080716497.dkr.ecr.us-east-1.amazonaws.com/projetofiap/payments-api
 
           ports:
             - containerPort: 8080
