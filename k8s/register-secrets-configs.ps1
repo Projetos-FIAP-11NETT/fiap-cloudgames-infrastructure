@@ -28,8 +28,8 @@ $sharedConfigArgs = @(
     # funcionam com as credenciais temporarias do AWS Academy.
     "--from-literal=SQS_SERVICE_URL=",
     "--from-literal=SQS_EMAIL_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/375157863909/notification-queue",
-    "--from-literal=ELASTICSEARCH_URI=teste",
-    "--from-literal=ELASTICSEARCH_INDEX=teste",
+    "--from-literal=ELASTICSEARCH_URI=http://elasticsearch:9200",
+    "--from-literal=ELASTICSEARCH_INDEX=games",
     "--dry-run=client", "-o", "yaml"
 )
 kubectl @sharedConfigArgs | kubectl apply -f -
