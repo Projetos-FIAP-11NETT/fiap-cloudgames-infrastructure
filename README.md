@@ -373,3 +373,8 @@ Dúvidas ou problemas? Abra uma issue ou contate a equipe de infraestrutura.
   Set-ExecutionPolicy -Scope Process Bypass  (Para habilitar execução de scripts)
   ./k8s/register-secrets-configs.ps1
 ```
+
+# 6. Subir manifestos da pastas /k8s/shared
+```
+  kubectl apply -R -f k8s/shared
+```

@@ -67,7 +67,7 @@ $sharedSecretArgs = @(
     "--from-literal=SQS_REGION=us-east-1",
     "--from-literal=SQS_ACCESS_KEY=test",
     "--from-literal=SQS_SECRET_KEY=test",
-    "--from-file=FIREBASE_CREDENTIAL_PATH=$PSScriptRoot\secrets-configs\firebase-service-account.json",
+    "--from-file=FIREBASE_CREDENTIALJSON=$PSScriptRoot\secrets-configs\firebase-service-account.json",
     "--from-literal=FIREBASE_APIKEY=AIzaSyCP88H3UcP8q3sl4Yh9Kf6IEePA_5KwTEs",
     "--dry-run=client", "-o", "yaml"
 )
@@ -78,7 +78,7 @@ $usersSecretArgs = @(
     "create", "secret", "generic", "users-secret", "-n", $Namespace,
     "--type=Opaque",
     "--from-literal=DB_USER_CONNECTION_STRING=Host=postgresdb-users;Port=5432;Database=users-db;Username=postgresAdmin;Password=postgresAdmin;",
-    "--from-file=FIREBASE_CREDENTIAL_PATH=$PSScriptRoot\secrets-configs\firebase-service-account.json",
+    "--from-file=FIREBASE_CREDENTIALJSON=$PSScriptRoot\secrets-configs\firebase-service-account.json",
     "--from-literal=FIREBASE_API_KEY=AIzaSyCP88H3UcP8q3sl4Yh9Kf6IEePA_5KwTEs",
     "--dry-run=client", "-o", "yaml"
 )
