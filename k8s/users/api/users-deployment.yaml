@@ -132,11 +132,11 @@ spec:
                   key: NEW_RELIC_DISTRIBUTED_TRACING_ENABLED
                   
             # Firebase
-            - name: Firebase__CredentialPath
+            - name: Firebase__CredentialJson
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
-                  key: FIREBASE_CREDENTIAL_PATH
+                  key: FIREBASE_CREDENTIALJSON
                   
             - name: Firebase__ApiKey
               valueFrom:
