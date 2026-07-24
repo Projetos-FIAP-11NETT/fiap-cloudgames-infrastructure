@@ -81,6 +81,13 @@ spec:
                 secretKeyRef:
                   name: users-secret
                   key: DB_USER_CONNECTION_STRING
+            
+            # Redis
+            - name: ConnectionStrings__Redis
+              valueFrom:
+                secretKeyRef:
+                  name: users-secret
+                  key: DB_USER_REDIS
 
             # New Relic
             - name: NEW_RELIC_LICENSE_KEY

@@ -104,6 +104,13 @@ spec:
                 secretKeyRef:
                   name: catalog-secret
                   key: DB_USER_CONNECTION_STRING
+            
+            # Redis
+            - name: SessionCache__KeyPrefix
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-secret
+                  key: SESSION_CACHE
 
             # New Relic
             - name: NEW_RELIC_LICENSE_KEY

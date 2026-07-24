@@ -78,6 +78,7 @@ $usersSecretArgs = @(
     "create", "secret", "generic", "users-secret", "-n", $Namespace,
     "--type=Opaque",
     "--from-literal=DB_USER_CONNECTION_STRING=Host=postgresdb-users;Port=5432;Database=users-db;Username=postgresAdmin;Password=postgresAdmin;",
+    "--from-literal=DB_USER_REDIS=redis:6379,password=redisPassword,abortConnect=false",
     "--from-file=FIREBASE_CREDENTIALJSON=$PSScriptRoot\secrets-configs\firebase-service-account.json",
     "--from-literal=FIREBASE_API_KEY=AIzaSyCP88H3UcP8q3sl4Yh9Kf6IEePA_5KwTEs",
     "--dry-run=client", "-o", "yaml"
@@ -98,6 +99,7 @@ $catalogSecretArgs = @(
     "create", "secret", "generic", "catalog-secret", "-n", $Namespace,
     "--type=Opaque",
     "--from-literal=DB_USER_CONNECTION_STRING=Host=postgresdb-catalog;Port=5432;Database=catalog-db;Username=postgresAdmin;Password=postgresAdmin;",
+    "--from-literal=SESSION_CACHE=FiapCloudGames.Users:sessions:",
     "--dry-run=client", "-o", "yaml"
 )
 kubectl @catalogSecretArgs | kubectl apply -f -
