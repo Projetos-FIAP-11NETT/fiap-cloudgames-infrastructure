@@ -17,6 +17,9 @@ data:
   # Redis
   REDIS_ADDRESS: "redis"
   REDIS_PORT: "6379"
+  # Elasticsearch
+  ELASTICSEARCH_URI: "http://elasticsearch:9200"
+  ELASTICSEARCH_INDEX: "games"
   # new relic
   NEW_RELIC_LOG: "stdout"
   NEW_RELIC_LOG_LEVEL: "debug"
