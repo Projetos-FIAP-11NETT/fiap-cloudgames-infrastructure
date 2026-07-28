@@ -1,6 +1,11 @@
 # FIAP Cloud Games — Infrastructure
 
-Este repositório contém toda a infraestrutura do FIAP Cloud Games: manifestos Kubernetes, Terraform para provisionar recursos no LocalStack (simulação AWS local) e o Lambda Authorizer em .NET 10.
+Este repositório contém toda a infraestrutura do FIAP Cloud Games: manifestos Kubernetes, Terraform para provisionar recursos no LocalStack (simulação AWS local) **e** na AWS real via **AWS Academy** (VPC + EKS, API Gateway + Lambda Authorizer), além do código-fonte do Lambda Authorizer em .NET 10.
+
+O repositório suporta dois modos de execução:
+
+- **Local (LocalStack):** todo o ambiente roda no Kubernetes local (Docker Desktop), incluindo o API Gateway e o Lambda Authorizer simulados via LocalStack.
+- **AWS real (AWS Academy):** cluster **EKS** provisionado no lab AWS Academy (`infra/terraform/aws-rede-eks`), API Gateway + Lambda Authorizer reais (`infra/terraform/aws-apigateway-lambda-auth`), imagens publicadas no ECR/Docker Hub. Veja [Deploy na AWS real (AWS Academy)](#deploy-na-aws-real-aws-academy).
 
 ---
 
@@ -10,7 +15,7 @@ Este repositório contém toda a infraestrutura do FIAP Cloud Games: manifestos 
 Cliente (JWT)
     │
     ▼
-API Gateway REST v1 (LocalStack — K8s NodePort :30466)
+API Gateway REST v1 (LocalStack :30466 — ou AWS real via AWS Academy)
     │
     ├─► Lambda Authorizer (.NET 10)
     │       └─► Valida JWT + roles → retorna IAM Policy
@@ -18,11 +23,11 @@ API Gateway REST v1 (LocalStack — K8s NodePort :30466)
     ▼ (Allow)
 ┌──────────────────────────────────────────────────────┐
 │  users-api :30082  │  payments-api :30081             │
-│  catalog-api :30083 │  (notification futuramente)     │
+│  catalog-api :30083 │  (notification via SQS)         │
 └──────────────────────────────────────────────────────┘
-    │           │           │           │
-  PostgreSQL  MongoDB     Redis      RabbitMQ / SQS / SNS
- (por serviço) (shared)  (shared)    (LocalStack)
+    │           │           │            │           │
+  PostgreSQL  MongoDB     Redis    Elasticsearch  RabbitMQ / SQS
+ (por serviço) (shared)  (shared)    (shared)      + MailHog (e-mail)
 ```
 
 ---
@@ -46,17 +51,24 @@ API Gateway REST v1 (LocalStack — K8s NodePort :30466)
 
 ```
 fiap-cloudgames-infrastructure/
-├── infra/terraform/localstack/   # Provisiona Lambda + API Gateway no LocalStack
-│   ├── main.tf
-│   ├── provider.tf               # Endpoint: http://localhost:30466 (K8s NodePort)
-│   ├── variables.tf
-│   └── outputs.tf
-├── k8s/                          # Manifestos Kubernetes
-│   ├── shared/                   # MongoDB, Redis, Elasticsearch, RabbitMQ, PgAdmin, RedisInsight
-│   ├── localstack/               # LocalStack (NodePort 30466)
-│   ├── catalog/                  # Catalog API + PostgreSQL próprio
-│   ├── users/                    # Users API + PostgreSQL próprio
-│   └── payments/                 # Payments API + PostgreSQL próprio
+├── infra/terraform/
+│   ├── localstack/                    # Provisiona Lambda + API Gateway no LocalStack
+│   │   ├── main.tf
+│   │   ├── provider.tf                # Endpoint: http://localhost:30466 (K8s NodePort)
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   ├── aws-rede-eks/                  # AWS real (AWS Academy): VPC + EKS
+│   │   └── README.md                  # Passo a passo, IAM roles do lab, custos
+│   └── aws-apigateway-lambda-auth/    # AWS real (AWS Academy): API Gateway + Lambda Authorizer
+├── k8s/                                # Manifestos Kubernetes
+│   ├── shared/                         # MongoDB, Redis, Elasticsearch, RabbitMQ, MailHog, PgAdmin, RedisInsight
+│   ├── localstack/                     # LocalStack (NodePort 30466)
+│   ├── catalog/                        # Catalog API + PostgreSQL próprio
+│   ├── users/                          # Users API + PostgreSQL próprio
+│   ├── payments/                       # Payments API + PostgreSQL próprio
+│   ├── app-services/                   # Services (ClusterIP/NLB) das APIs, separados dos manifests de app
+│   ├── secrets-configs/                # ConfigMaps/Secrets de exemplo (gitignored quando sensíveis)
+│   └── register-secrets-configs.ps1    # Script para recriar ConfigMaps/Secrets no cluster (ex.: pós AWS Academy reset)
 └── localstack-init/
     ├── create-api-gateway.sh     # Bootstrap alternativo via shell
     └── lambda-authorizer/        # Código-fonte do Lambda Authorizer (.NET 10)
@@ -245,6 +257,9 @@ invoke_url = "http://localhost.localstack.cloud:30466/_aws/execute-api/<ID>/dev"
 | RedisInsight | 30001 | `http://localhost:30001` |
 | RabbitMQ AMQP | 30672 | `localhost:30672` |
 | RabbitMQ Management | 31672 | `http://localhost:31672` |
+| Elasticsearch | — | `ClusterIP` interno (`elasticsearch:9200`) — sem NodePort; use `kubectl port-forward` para acessar de fora do cluster |
+| MailHog SMTP | — | `ClusterIP` interno (`mailhog:1025`) — usado pelas APIs para enviar e-mail dentro do cluster |
+| MailHog UI | 8025 (via port-forward) | `kubectl port-forward svc/mailhog 8025:8025 -n apps` — recomendado no AWS Academy para não gastar cota de NLB |
 
 ---
 
@@ -339,42 +354,78 @@ image: projetofiap/users-api:1.2.0
 Dúvidas ou problemas? Abra uma issue ou contate a equipe de infraestrutura.
 
 
-## DEPLOY AWS
+## Deploy na AWS real (AWS Academy)
 
-# 1. Atualizar arquivo .aws/credentials com novas credenciais da sessão da AWS
-# 2. Atualizar Account ID da AWS nos arquivos de deployment no trecho abaixo:
+Além do LocalStack, o projeto também sobe (fase 4) na **AWS real, usando uma conta de lab do AWS Academy**. Isso muda algumas premissas em relação a uma conta AWS normal:
 
-/k8s/catalog/api/catolog-deployment.yaml  
-/k8s/paymets/api/payments-deployment.yaml  
-/k8s/users/api/users-deployment.yaml  
+| Particularidade do AWS Academy | Como o repositório se adapta |
+|---|---|
+| Credenciais são **temporárias** (expiram a cada sessão de lab) | Sempre copie o bloco **AWS Details → AWS CLI** do lab para `~/.aws/credentials` antes de rodar Terraform/kubectl — nenhuma credencial é versionada no repo |
+| Não é possível criar roles/usuários IAM (`iam:CreateRole` bloqueado) | Terraform reaproveita a role pré-criada do lab (**`LabRole`** para Lambdas, `LabEksClusterRole`/`LabEksNodeRole` — nomes fornecidos via `terraform.tfvars`, mudam a cada sessão) em vez de criar roles novas |
+| Algumas ações de serviço são bloqueadas na plataforma (ex.: `ses:*`) | Serviços afetados usam alternativa local — ver [`fiap-cloudgames-notifications-lambda`](../fiap-cloudgames-notifications-lambda), que troca AWS SES por MailHog no cluster |
+| Orçamento e tempo de sessão limitados | **Sempre rode `terraform destroy` ao final da sessão** — EKS e NAT Gateway cobram por hora |
+
+### Passo a passo
+
+**1. Atualizar credenciais da sessão AWS Academy**
+
+Copie o bloco do lab (**AWS Details → AWS CLI**) para `~/.aws/credentials`.
+
+**2. Atualizar o Account ID da AWS** nos manifests de deployment (o Account ID muda por conta de lab):
 
 ```
-  image: [ACCOUNT_ID].dkr.ecr.us-east-1.amazonaws.com/projetofiap/users-api:1
-```
-# 3. Subir a infra via terraform
-```
-  terraform init (1x)
-  cd infra/terraform/aws-rede-eks
-  terraform plan
-  terraform apply
-
-  cd infra/terraform/aws-apigateway-lambda-auth
-  terraform plan
-  terraform apply
-```
-
-# 4. Conectar ao cluster
-```
-  aws eks update-kubeconfig --name fiapcloudgames-cluster --region us-east-1
+k8s/catalog/api/catalog-deployment.yaml
+k8s/payments/api/payments-deployment.yaml
+k8s/users/api/users-deployment.yaml
 ```
 
-# 5. Criar segredos e config maps
-```
-  Set-ExecutionPolicy -Scope Process Bypass  (Para habilitar execução de scripts)
-  ./k8s/register-secrets-configs.ps1
+```yaml
+image: [ACCOUNT_ID].dkr.ecr.us-east-1.amazonaws.com/projetofiap/users-api:1
 ```
 
-# 6. Subir manifestos da pastas /k8s/shared
+**3. Provisionar a infra via Terraform** — primeiro a rede/cluster, depois o API Gateway + Lambda Authorizer (veja também o [README do módulo `aws-rede-eks`](infra/terraform/aws-rede-eks/README.md) para o detalhamento completo, custos e decisões):
+
+```bash
+cd infra/terraform/aws-rede-eks
+terraform init      # apenas na primeira vez
+cp terraform.tfvars.example terraform.tfvars   # preencha cluster_role_name / node_role_name do lab
+terraform plan
+terraform apply
+
+cd ../aws-apigateway-lambda-auth
+terraform init
+cp terraform.tfvars.example terraform.tfvars
+terraform plan
+terraform apply
 ```
-  kubectl apply -R -f k8s/shared
+
+**4. Conectar o `kubectl` ao cluster EKS:**
+
+```bash
+aws eks update-kubeconfig --name fiapcloudgames-cluster --region us-east-1
+kubectl get nodes
+```
+
+**5. Criar Secrets e ConfigMaps:**
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass   # habilita execução de scripts, se necessário
+./k8s/register-secrets-configs.ps1
+```
+
+> Como as credenciais/roles do AWS Academy mudam a cada sessão, é comum precisar re-rodar este script (e reaplicar os manifests) sempre que o lab reseta.
+
+**6. Subir os manifestos compartilhados** (Postgres, MongoDB, Redis, Elasticsearch, RabbitMQ, MailHog, PgAdmin, RedisInsight):
+
+```bash
+kubectl apply -R -f k8s/shared
+```
+
+Em seguida aplique os manifests de cada serviço (`k8s/catalog`, `k8s/users`, `k8s/payments`, `k8s/app-services`) da mesma forma.
+
+**7. Ao encerrar a sessão do lab:**
+
+```bash
+cd infra/terraform/aws-apigateway-lambda-auth && terraform destroy
+cd ../aws-rede-eks && terraform destroy
 ```
