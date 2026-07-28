@@ -1,0 +1,14 @@
+# Copie este arquivo para terraform.tfvars e preencha os valores.
+# terraform.tfvars é gitignored (padrão *.tfvars) — nunca versione o arquivo real.
+
+# NOMES das IAM Roles pré-criadas no lab AWS Academy (console IAM -> Roles).
+# Elas mudam a cada sessão de lab — confira antes de aplicar.
+cluster_role_name = "<LabEksClusterRole-xxxxxxxx>"
+node_role_name    = "<LabEksNodeRole-xxxxxxxx>"
+
+# Opcionais (defaults em variables.tf):
+# aws_region         = "us-east-1"
+# az_count           = 2       # 2 (mínimo EKS) ou 3 (produção)
+# single_nat_gateway = true   # false = 1 NAT por AZ (produção); true = 1 NAT único (economia)
+# cluster_name       = "fiapcloudgames-cluster"
+# cluster_version    = "1.30"

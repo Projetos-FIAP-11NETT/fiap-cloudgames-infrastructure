@@ -22,10 +22,16 @@ spec:
     spec:
       containers:
         - name: users
-          image: projetofiap/users-api:latest
+          image: 375157863909.dkr.ecr.us-east-1.amazonaws.com/projetofiap/users-api
           
           ports:
             - containerPort: 8080
+
+          # volumeMounts:
+          #   - name: firebase-credentials
+          #     mountPath: /app/firebase-service-account.json
+          #     subPath: firebase-service-account.json
+          #     readOnly: true
           
           resources:
             requests: # recursos mínimos
@@ -75,6 +81,13 @@ spec:
                 secretKeyRef:
                   name: users-secret
                   key: DB_USER_CONNECTION_STRING
+            
+            # Redis
+            - name: ConnectionStrings__Redis
+              valueFrom:
+                secretKeyRef:
+                  name: users-secret
+                  key: DB_USER_REDIS
 
             # New Relic
             - name: NEW_RELIC_LICENSE_KEY
@@ -119,14 +132,19 @@ spec:
                   key: NEW_RELIC_DISTRIBUTED_TRACING_ENABLED
                   
             # Firebase
-            - name: Firebase__CredentialPath
+            - name: Firebase__CredentialJson
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
-                  key: FIREBASE_CREDENTIAL_PATH
+                  key: FIREBASE_CREDENTIALJSON
                   
             - name: Firebase__ApiKey
               valueFrom:
                 secretKeyRef:
                   name: shared-secret
                   key: FIREBASE_APIKEY
+
+      volumes:
+        - name: firebase-credentials
+          secret:
+            secretName: firebase-credentials

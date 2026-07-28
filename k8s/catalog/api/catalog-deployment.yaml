@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: catalog
-          image: projetofiap/catalog-api:latest
+          image: 375157863909.dkr.ecr.us-east-1.amazonaws.com/projetofiap/catalog-api
           
           ports:
             - containerPort: 8080
@@ -53,6 +53,19 @@ spec:
                 secretKeyRef:
                   name: shared-secret
                   key: REDIS_CONNECTION_STRING
+
+            # Elasticsearch
+            - name: Elasticsearch__Uri
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: ELASTICSEARCH_URI
+
+            - name: Elasticsearch__IndexName
+              valueFrom:
+                configMapKeyRef:
+                  name: shared-config
+                  key: ELASTICSEARCH_INDEX
 
             # SQS
             - name: SqsSettings__Region
@@ -91,6 +104,13 @@ spec:
                 secretKeyRef:
                   name: catalog-secret
                   key: DB_USER_CONNECTION_STRING
+            
+            # Redis
+            - name: SessionCache__KeyPrefix
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-secret
+                  key: SESSION_CACHE
 
             # New Relic
             - name: NEW_RELIC_LICENSE_KEY

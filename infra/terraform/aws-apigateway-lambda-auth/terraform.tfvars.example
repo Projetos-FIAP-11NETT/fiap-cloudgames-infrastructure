@@ -1,0 +1,33 @@
+## Example terraform.tfvars for infra/terraform (AWS real - Academy Lab)
+# Copy this file to terraform.tfvars and fill values before running the deploy script.
+
+# AWS region
+aws_region = "us-east-1"
+
+# Stage name for API Gateway
+stage_name = "dev"
+
+# API and Lambda names
+api_name = "local-api-gateway-v1"
+lambda_name = "fiap-api-authorizer"
+
+# When true, API methods authorization is disabled (useful for local dev)
+# Set to "true" or "false"
+allow_dev_stage_bypass = "false"
+
+# Internal container port used by services (matches docker-compose)
+container_port = "80"
+
+# Optional: Firebase project id used by the authorizer (leave empty if not used)
+firebase_project_id = ""
+
+# Optional: JWKS metadata address for token validation (leave empty if not used)
+jwks_metadata_address = ""
+
+# ARNs dos NLBs internos que expõem cada serviço na subnet privada do EKS
+# (criados pelo AWS Load Balancer Controller via Service type=LoadBalancer + annotation internal)
+service_nlb_arns = {
+  catalog  = "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/net/catalog-nlb/xxxxxxxxxxxxxxxx"
+  users    = "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/net/users-nlb/xxxxxxxxxxxxxxxx"
+  payments = "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/net/payments-nlb/xxxxxxxxxxxxxxxx"
+}

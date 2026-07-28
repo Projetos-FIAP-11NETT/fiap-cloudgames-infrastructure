@@ -21,9 +21,13 @@ spec:
   template:
     metadata:
       labels:
-        app: postgresdb-payments      
+        app: postgresdb-payments
 
     spec:
+      # Garante que o usuário do processo postgres (uid 999) tenha permissão de escrita no volume EBS
+      securityContext:
+        fsGroup: 999
+
       containers:
         - name: postgresdb-payments
           image: postgres:16
@@ -55,7 +59,11 @@ spec:
                 secretKeyRef:
                   name: shared-secret
                   key: POSTGRES_PASSWORD
-    
+
+            # Usa subdiretório para evitar conflito com "lost+found" criado em volumes EBS recém-formatados
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data

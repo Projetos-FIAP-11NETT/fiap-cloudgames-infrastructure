@@ -5,6 +5,9 @@
 
 #secrets
 *secret.yaml
+*firebase-service-account.json
+*.ps1
+*secrets-configs.zip
 
 # local stack files
 license.json
